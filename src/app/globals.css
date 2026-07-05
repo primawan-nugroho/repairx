@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+/* RepairX theme tokens — derived from DESIGN.md (macOS Sonoma-esque, light/dark) */
+:root,
+[data-theme="light"] {
+  --canvas: #f5f5f7;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #ffffff;
+  --sidebar: rgba(255, 255, 255, 0.7);
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #98989d;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --accent: #0071e3;
+  --accent-bg: rgba(0, 113, 227, 0.12);
+  --status-open: #8e8e93;
+  --status-progress: #0071e3;
+  --status-closed: #248a3d;
+  --status-waiting: #a05a00;
+  --status-urgent: #d70015;
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* Categorical UIC palette — one hue per unit-in-charge team (see wc-uic-map.ts).
+     Work centers inherit their mapped UIC's hue. "unmapped" is the gray fallback
+     for legacy data predating the mapping rule. */
+  --uic-a: #7c3aed;
+  --uic-b: #ea580c;
+  --uic-c: #0d9488;
+  --uic-d: #db2777;
+  --uic-e: #0891b2;
+  --uic-f: #65a30d;
+  --uic-g: #b45309;
+  --uic-h: #475569;
+  --uic-i: #9f1239;
+  --uic-j: #166534;
+  --uic-unmapped: #8e8e93;
+}
+
+[data-theme="dark"] {
+  --canvas: #1c1c1e;
+  --surface: rgba(44, 44, 46, 0.62);
+  --surface-solid: #2c2c2e;
+  --sidebar: rgba(30, 30, 32, 0.7);
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-tertiary: #6e6e73;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent: #409cff;
+  --accent-bg: rgba(64, 156, 255, 0.16);
+  --status-open: #98989d;
+  --status-progress: #409cff;
+  --status-closed: #30d158;
+  --status-waiting: #ffb340;
+  --status-urgent: #ff453a;
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --uic-a: #a78bfa;
+  --uic-b: #fb923c;
+  --uic-c: #2dd4bf;
+  --uic-d: #f472b6;
+  --uic-e: #22d3ee;
+  --uic-f: #a3e635;
+  --uic-g: #fbbf24;
+  --uic-h: #94a3b8;
+  --uic-i: #fda4af;
+  --uic-j: #86efac;
+  --uic-unmapped: #98989d;
+}
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", Consolas, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-solid: var(--surface-solid);
+  --color-sidebar: var(--sidebar);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-status-open: var(--status-open);
+  --color-status-progress: var(--status-progress);
+  --color-status-closed: var(--status-closed);
+  --color-status-waiting: var(--status-waiting);
+  --color-status-urgent: var(--status-urgent);
+
+  --color-uic-a: var(--uic-a);
+  --color-uic-b: var(--uic-b);
+  --color-uic-c: var(--uic-c);
+  --color-uic-d: var(--uic-d);
+  --color-uic-e: var(--uic-e);
+  --color-uic-f: var(--uic-f);
+  --color-uic-g: var(--uic-g);
+  --color-uic-h: var(--uic-h);
+  --color-uic-i: var(--uic-i);
+  --color-uic-j: var(--uic-j);
+  --color-uic-unmapped: var(--uic-unmapped);
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+.vibrancy {
+  background-color: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.data-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background-color: var(--color-accent-bg);
+  color: var(--color-accent);
+}

@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+.env
+.env.local
+*.log
+.DS_Store
+
+# Source Excel workbooks — contain live operational/customer data, kept out of
+# the public repo. Copy them into the project root locally to run import:excel.
+Main Database.xlsx
+End Shift Report.xlsx
+
+# Local Claude Code settings/runtime state (machine-specific, not shared)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Build artifacts and Office lock files
+tsconfig.tsbuildinfo
+~$*.xlsx
+~$*.xls
