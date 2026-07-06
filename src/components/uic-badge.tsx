@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
+import { cn, personColorKey } from "@/lib/utils";
 import { uicColorKey, wcColorKey } from "@/lib/wc-uic-map";
 
-const COLOR_CLASSES: Record<string, string> = {
+export const CATEGORICAL_COLOR_CLASSES: Record<string, string> = {
   "uic-a": "bg-uic-a/15 text-uic-a",
   "uic-b": "bg-uic-b/15 text-uic-b",
   "uic-c": "bg-uic-c/15 text-uic-c",
@@ -22,7 +22,7 @@ export function UicBadge({ uic }: { uic: string | null | undefined }) {
     <span
       className={cn(
         "inline-block rounded-full px-2.5 py-0.5 text-xs font-medium",
-        COLOR_CLASSES[key],
+        CATEGORICAL_COLOR_CLASSES[key],
       )}
     >
       {uic}
@@ -46,10 +46,27 @@ export function WorkCenterBadge({
       className={cn(
         "inline-block rounded-full px-2.5 py-0.5 text-xs font-medium",
         onClick && "cursor-pointer hover:ring-2 hover:ring-current/30",
-        COLOR_CLASSES[key],
+        CATEGORICAL_COLOR_CLASSES[key],
       )}
     >
       {workCenter}
     </Comp>
+  );
+}
+
+/** Same categorical palette, applied to a free-text name (e.g. a job assignee)
+ * instead of a work center/UIC — see personColorKey. */
+export function PersonBadge({ name }: { name: string | null | undefined }) {
+  if (!name) return <span className="text-text-tertiary">-</span>;
+  const key = personColorKey(name);
+  return (
+    <span
+      className={cn(
+        "inline-block rounded-full px-2.5 py-0.5 text-xs font-medium",
+        CATEGORICAL_COLOR_CLASSES[key],
+      )}
+    >
+      {name}
+    </span>
   );
 }

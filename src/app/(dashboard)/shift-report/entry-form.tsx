@@ -45,7 +45,7 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
           setWorkCenter("");
         });
       }}
-      className="vibrancy grid grid-cols-1 gap-3 rounded-lg border border-border p-5 md:grid-cols-4"
+      className="bg-surface-solid grid grid-cols-1 gap-3 rounded-lg border border-border p-5 md:grid-cols-4"
     >
       <input type="hidden" name="reportDate" value={reportDate} />
       <input type="hidden" name="shift" value={shift} />

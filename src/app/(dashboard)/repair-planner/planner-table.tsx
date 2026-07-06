@@ -7,35 +7,38 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { Order } from "@/db/schema";
+import type { RepairPlannerEntry } from "@/db/schema";
 import { StatusBadge } from "@/components/status-badge";
-import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
-import { OrderEditDialog } from "./order-edit-dialog";
-import { WorkCenterRoutingPopover } from "./work-center-routing-popover";
+import { PersonBadge } from "@/components/uic-badge";
 import { ColumnFilter } from "@/components/column-filter";
+import { formatDate } from "@/lib/utils";
+import { PlannerEntryDialog } from "./planner-entry-dialog";
 
 interface FilterOptions {
+  engineApu: string[];
+  customer: string[];
   engineType: string[];
-  workCenter: string[];
-  uic: string[];
-  status: string[];
+  eo: string[];
+  rpc1: string[];
+  rpc2: string[];
+  gate4Status: string[];
+  projectStatus: string[];
 }
 
-export function OrdersTable({
+export function PlannerTable({
   data,
   canEdit,
   currentSearch,
   filterOptions,
 }: {
-  data: Order[];
+  data: RepairPlannerEntry[];
   canEdit: boolean;
   currentSearch: Record<string, string | undefined>;
   filterOptions: FilterOptions;
 }) {
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [routingOrder, setRoutingOrder] = useState<Order | null>(null);
+  const [editingEntry, setEditingEntry] = useState<RepairPlannerEntry | null>(null);
 
-  const columnHelper = createColumnHelper<Order>();
+  const columnHelper = createColumnHelper<RepairPlannerEntry>();
 
   function headerWithFilter(label: string, filterEl: React.ReactNode) {
     return (
@@ -47,64 +50,49 @@ export function OrdersTable({
   }
 
   const columns = [
-    columnHelper.accessor("orderNumber", {
+    columnHelper.accessor("engineApu", {
       header: () =>
         headerWithFilter(
-          "Order",
+          "Engine/APU",
           <ColumnFilter
-            basePath="/orders"
-            label="Order"
-            paramKey="orderNumberLike"
+            basePath="/repair-planner"
+            label="Engine/APU"
+            paramKey="engineApu"
             currentSearch={currentSearch}
-            type="text"
+            type="select"
+            options={filterOptions.engineApu}
           />,
         ),
       cell: (info) => (
         <button
-          onClick={() => setEditingOrder(info.row.original)}
-          className="data-mono text-accent hover:underline"
+          onClick={() => setEditingEntry(info.row.original)}
+          className="text-accent hover:underline"
         >
-          {info.getValue()}
+          {info.getValue() || "-"}
         </button>
       ),
     }),
-    columnHelper.accessor("description", {
+    columnHelper.accessor("customer", {
       header: () =>
         headerWithFilter(
-          "Description",
+          "Customer",
           <ColumnFilter
-            basePath="/orders"
-            label="Description"
-            paramKey="descriptionLike"
+            basePath="/repair-planner"
+            label="Customer"
+            paramKey="customer"
             currentSearch={currentSearch}
-            type="text"
+            type="select"
+            options={filterOptions.customer}
           />,
         ),
-      cell: (info) => (
-        <span className="line-clamp-1 max-w-[260px]">{info.getValue() || "-"}</span>
-      ),
-    }),
-    columnHelper.accessor("serialNumber", {
-      header: () =>
-        headerWithFilter(
-          "Serial number",
-          <ColumnFilter
-            basePath="/orders"
-            label="Serial number"
-            paramKey="serialNumberLike"
-            currentSearch={currentSearch}
-            type="text"
-          />,
-        ),
-      cell: (info) => <span className="data-mono">{info.getValue() || "-"}</span>,
     }),
     columnHelper.accessor("engineType", {
       header: () =>
         headerWithFilter(
-          "Engine type",
+          "Type",
           <ColumnFilter
-            basePath="/orders"
-            label="Engine type"
+            basePath="/repair-planner"
+            label="Type"
             paramKey="engineType"
             currentSearch={currentSearch}
             type="select"
@@ -112,85 +100,95 @@ export function OrdersTable({
           />,
         ),
     }),
-    columnHelper.accessor("mwcToday", {
+    columnHelper.accessor("serialNumber", {
+      header: "SN",
+      cell: (info) => <span className="data-mono">{info.getValue() || "-"}</span>,
+    }),
+    columnHelper.accessor("eo", {
       header: () =>
         headerWithFilter(
-          "Work center",
+          "EO",
           <ColumnFilter
-            basePath="/orders"
-            label="Work center"
-            paramKey="workCenter"
+            basePath="/repair-planner"
+            label="EO"
+            paramKey="eo"
             currentSearch={currentSearch}
             type="select"
-            options={filterOptions.workCenter}
+            options={filterOptions.eo}
           />,
         ),
-      cell: (info) => (
-        <WorkCenterBadge
-          workCenter={info.getValue()}
-          onClick={info.getValue() ? () => setRoutingOrder(info.row.original) : undefined}
-        />
-      ),
     }),
-    columnHelper.accessor("uicToday", {
+    columnHelper.accessor("workscope", {
+      header: "Workscope",
+      cell: (info) => <span className="line-clamp-1 max-w-[220px]">{info.getValue() || "-"}</span>,
+    }),
+    columnHelper.accessor("inductionDate", {
+      header: "Induction date",
+      cell: (info) => <span className="data-mono">{formatDate(info.getValue())}</span>,
+    }),
+    columnHelper.accessor("rpc1", {
       header: () =>
         headerWithFilter(
-          "UIC",
+          "RPC-1",
           <ColumnFilter
-            basePath="/orders"
-            label="UIC"
-            paramKey="uic"
+            basePath="/repair-planner"
+            label="RPC-1"
+            paramKey="rpc1"
             currentSearch={currentSearch}
             type="select"
-            options={filterOptions.uic}
+            options={filterOptions.rpc1}
           />,
         ),
-      cell: (info) => <UicBadge uic={info.getValue()} />,
+      cell: (info) => <PersonBadge name={info.getValue()} />,
     }),
-    columnHelper.accessor("status", {
+    columnHelper.accessor("rpc2", {
       header: () =>
         headerWithFilter(
-          "Status",
+          "RPC-2",
           <ColumnFilter
-            basePath="/orders"
-            label="Status"
-            paramKey="status"
+            basePath="/repair-planner"
+            label="RPC-2"
+            paramKey="rpc2"
             currentSearch={currentSearch}
             type="select"
-            options={filterOptions.status}
+            options={filterOptions.rpc2}
+          />,
+        ),
+      cell: (info) => <PersonBadge name={info.getValue()} />,
+    }),
+    columnHelper.accessor("gate4Status", {
+      header: () =>
+        headerWithFilter(
+          "Gate 4",
+          <ColumnFilter
+            basePath="/repair-planner"
+            label="Gate 4"
+            paramKey="gate4Status"
+            currentSearch={currentSearch}
+            type="select"
+            options={filterOptions.gate4Status}
           />,
         ),
       cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
-    columnHelper.accessor("location", {
+    columnHelper.accessor("projectStatus", {
       header: () =>
         headerWithFilter(
-          "Location",
+          "Project status",
           <ColumnFilter
-            basePath="/orders"
-            label="Location"
-            paramKey="locationLike"
+            basePath="/repair-planner"
+            label="Project status"
+            paramKey="projectStatus"
             currentSearch={currentSearch}
-            type="text"
+            type="select"
+            options={filterOptions.projectStatus}
           />,
         ),
-      cell: (info) => <span>{info.getValue() || "-"}</span>,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
     columnHelper.accessor("remark", {
-      header: () =>
-        headerWithFilter(
-          "Remark",
-          <ColumnFilter
-            basePath="/orders"
-            label="Remark"
-            paramKey="remarkLike"
-            currentSearch={currentSearch}
-            type="text"
-          />,
-        ),
-      cell: (info) => (
-        <span className="line-clamp-1 max-w-[220px]">{info.getValue() || "-"}</span>
-      ),
+      header: "Remark",
+      cell: (info) => <span className="line-clamp-1 max-w-[200px]">{info.getValue() || "-"}</span>,
     }),
   ];
 
@@ -231,7 +229,7 @@ export function OrdersTable({
             {table.getRowModel().rows.length === 0 && (
               <tr>
                 <td colSpan={columns.length} className="px-3 py-8 text-center text-text-secondary">
-                  No orders match these filters.
+                  No entries match these filters.
                 </td>
               </tr>
             )}
@@ -239,16 +237,8 @@ export function OrdersTable({
         </table>
       </div>
 
-      {editingOrder && (
-        <OrderEditDialog
-          order={editingOrder}
-          canEdit={canEdit}
-          onClose={() => setEditingOrder(null)}
-        />
-      )}
-
-      {routingOrder && (
-        <WorkCenterRoutingPopover order={routingOrder} onClose={() => setRoutingOrder(null)} />
+      {editingEntry && (
+        <PlannerEntryDialog entry={editingEntry} canEdit={canEdit} onClose={() => setEditingEntry(null)} />
       )}
     </>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { NavLinks } from "@/components/nav-links";
 import { useSidebarState, SidebarLogoButton } from "@/components/sidebar-toggle";
@@ -32,7 +31,7 @@ export function Sidebar() {
           <aside className="vibrancy fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-border">
             <div className="flex items-center justify-between px-4 py-5">
               <div className="flex items-center gap-2">
-                <Image src="/logo_only_black.png" alt="" width={24} height={24} priority className="dark:invert" />
+                <img src="/logo_only_black.png" alt="" width={24} height={24} className="dark:invert" />
                 <span className="text-[17px] font-semibold text-text-primary">RepairX</span>
               </div>
               <button

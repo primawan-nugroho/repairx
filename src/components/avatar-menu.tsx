@@ -42,7 +42,7 @@ export function AvatarMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="vibrancy absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border shadow-[var(--shadow-popover)]">
+          <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-medium text-text-primary">{name}</p>
               <p className="data-mono text-xs text-text-tertiary">

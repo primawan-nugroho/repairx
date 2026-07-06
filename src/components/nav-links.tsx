@@ -39,6 +39,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/repair-planner",
+    label: "Repair planner",
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth={1.8} />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 3v4M16 3v4M4 10h16" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="m9 15 2 2 4-4" />
+      </>
+    ),
+  },
+  {
     href: "/masters",
     label: "Masters",
     icon: (

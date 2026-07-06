@@ -96,3 +96,20 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const repairPlannerEntrySchema = z.object({
+  engineApu: z.string().max(16).nullable().optional(),
+  customer: z.string().max(128).nullable().optional(),
+  engineType: z.string().max(32).nullable().optional(),
+  serialNumber: z.string().max(64).nullable().optional(),
+  eo: z.string().max(64).nullable().optional(),
+  workscope: z.string().max(128).nullable().optional(),
+  inductionDate: optionalDateString,
+  rpc1: z.string().max(64).nullable().optional(),
+  rpc2: z.string().max(64).nullable().optional(),
+  gate4Status: z.string().max(32).nullable().optional(),
+  projectStatus: z.string().max(32).nullable().optional(),
+  remark: z.string().max(2000).nullable().optional(),
+});
+
+export type RepairPlannerEntryInput = z.infer<typeof repairPlannerEntrySchema>;

@@ -22,6 +22,7 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   CLOSED: "status-closed",
   "FINAL CONFIRM": "status-closed",
   INPROGRESS: "status-progress",
+  WIP: "status-waiting",
 };
 
 export function statusColorKey(status: string | null | undefined): string {
@@ -35,4 +36,22 @@ export function tierColorKey(tier: number | null | undefined): string {
   if (tier === 1) return "status-urgent";
   if (tier === 2) return "status-waiting";
   return "status-open";
+}
+
+const PERSON_COLOR_SLUGS = ["uic-a", "uic-b", "uic-c", "uic-d", "uic-e", "uic-f", "uic-g", "uic-h", "uic-i", "uic-j"];
+
+/** Deterministic categorical color for a free-text name (e.g. an assignee), reusing
+ * the existing 10-hue categorical palette. Unlike the UIC mapping, this isn't backed
+ * by a fixed lookup table — any string hashes to a stable color, so new names don't
+ * need a manual mapping update. */
+export function personColorKey(name: string | null | undefined): string {
+  if (!name) return "unmapped";
+  const trimmed = name.trim();
+  if (!trimmed) return "unmapped";
+  let hash = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    hash = (hash * 31 + trimmed.charCodeAt(i)) | 0;
+  }
+  const index = Math.abs(hash) % PERSON_COLOR_SLUGS.length;
+  return PERSON_COLOR_SLUGS[index] ?? "unmapped";
 }

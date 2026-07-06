@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "repairx-sidebar-collapsed";
@@ -95,12 +94,11 @@ export function SidebarLogoButton({ collapsed }: { collapsed: boolean }) {
         collapsed ? "justify-center px-0" : "mx-2 w-auto px-2",
       )}
     >
-      <Image
+      <img
         src="/logo_only_black.png"
         alt=""
         width={collapsed ? 32 : 24}
         height={collapsed ? 32 : 24}
-        priority
         className="dark:invert"
       />
       {!collapsed && <span className="text-[17px] font-semibold text-text-primary">RepairX</span>}

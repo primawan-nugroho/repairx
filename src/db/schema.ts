@@ -72,9 +72,33 @@ export const shiftReportEntries = pgTable("shift_report_entries", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Internal Repair Planner — tracks longer-running engine/APU overhaul jobs
+// (distinct from the day-to-day orders board): who's assigned (RPC-1/RPC-2),
+// induction date, Gate 4 and overall project status.
+export const repairPlannerEntries = pgTable("repair_planner_entries", {
+  id: serial("id").primaryKey(),
+  engineApu: varchar("engine_apu", { length: 16 }), // "Engine" | "APU"
+  customer: varchar("customer", { length: 128 }),
+  engineType: varchar("engine_type", { length: 32 }), // e.g. CFM56-7B, GTCP131-9A
+  serialNumber: varchar("serial_number", { length: 64 }),
+  eo: varchar("eo", { length: 64 }), // engineering officer / owner
+  workscope: varchar("workscope", { length: 128 }),
+  inductionDate: date("induction_date"),
+  rpc1: varchar("rpc1", { length: 64 }),
+  rpc2: varchar("rpc2", { length: 64 }),
+  gate4Status: varchar("gate4_status", { length: 32 }), // CLOSED | INPROGRESS | -
+  projectStatus: varchar("project_status", { length: 32 }), // CLOSED | WIP | -
+  remark: text("remark"),
+  archived: boolean("archived").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type ShiftReportEntry = typeof shiftReportEntries.$inferSelect;
 export type NewShiftReportEntry = typeof shiftReportEntries.$inferInsert;
+export type RepairPlannerEntry = typeof repairPlannerEntries.$inferSelect;
+export type NewRepairPlannerEntry = typeof repairPlannerEntries.$inferInsert;

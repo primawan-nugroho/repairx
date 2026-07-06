@@ -11,9 +11,10 @@ interface ColumnFilterProps {
   currentSearch: Record<string, string | undefined>;
   type: "select" | "text";
   options?: string[];
+  basePath: string;
 }
 
-export function ColumnFilter({ label, paramKey, currentSearch, type, options }: ColumnFilterProps) {
+export function ColumnFilter({ label, paramKey, currentSearch, type, options, basePath }: ColumnFilterProps) {
   const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -40,7 +41,7 @@ export function ColumnFilter({ label, paramKey, currentSearch, type, options }: 
       params.delete(paramKey);
     }
     params.delete("page");
-    router.push(`/orders?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
     setOpen(false);
   }
 
@@ -74,7 +75,7 @@ export function ColumnFilter({ label, paramKey, currentSearch, type, options }: 
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
               style={{ position: "fixed", top: position.top, left: position.left }}
-              className="vibrancy z-50 w-56 rounded-lg border border-border p-3 shadow-[var(--shadow-popover)]"
+              className="z-50 w-56 rounded-lg border border-border bg-surface-solid p-3 shadow-[var(--shadow-popover)]"
             >
               {type === "text" ? (
                 <div className="flex flex-col gap-2">

@@ -370,17 +370,26 @@ one click.
 ### Column filter
 A small ▾ button beside each header label opens a floating panel (rendered via portal,
 `position: fixed`, so it's never clipped by the table's horizontal scroll container):
-value-list columns (Engine type, Work center, UIC, Status) get a checkbox multi-select
-with a search box and Select all/Clear; free-text columns (Order, Description, Serial
-number, Location, Remark) get a single "contains" text field. An active filter tints the
+value-list columns get a checkbox multi-select with a search box and Select all/Clear;
+free-text columns get a single "contains" text field. An active filter tints the
 ▾ accent-blue. Filter state lives in the URL, so it survives reload and is shareable.
+Shared across every table in the app (`{ColumnFilter}` in `src/components/`, taking a
+`basePath` prop for which page's URL it navigates) — **opaque** (`{colors.*.surface-solid}`),
+not vibrancy; an earlier version blurred it and it read as washed-out over table content,
+the same lesson that pushed modals to opaque.
 
 ### Badges
 **`{badge-status}`** — pill, `{typography.label}`, tint background (14–20% opacity of
 the status hue) + the solid hue as text color. Same treatment for every state,
-including urgent — no separate "solid" emphasis variant. The Work center and UIC
-columns use the same pill shape but pull from the categorical UIC palette instead of
-the status palette (see Colors → Categorical UIC palette).
+including urgent — no separate "solid" emphasis variant. `WIP` (repair planner's
+project-status value) maps to the waiting/amber hue, distinct from `INPROGRESS`'s blue,
+so the two "still going" states read differently at a glance.
+The Work center and UIC columns use the same pill shape but pull from the categorical
+UIC palette instead of the status palette (see Colors → Categorical UIC palette).
+**`{PersonBadge}`** — same pill shape again, applied to a free-text assignee name (e.g.
+repair planner's RPC-1/RPC-2) via a deterministic hash into the same 10-hue categorical
+palette (`personColorKey` in `src/lib/utils.ts`) rather than a hardcoded name→color
+table — new names get a stable color automatically, no manual mapping upkeep.
 
 ### Inputs & forms
 **`{text-input}`** — translucent surface fill, 1px border, `{rounded.sm}`, focus swaps
@@ -433,11 +442,12 @@ belong inside the account menu.
   button. Sized for a 13″ HD laptop: `max-height: 85vh` with the form area scrolling
   internally while the header and footer (Cancel/Save/Delete) stay pinned, so the
   action row is never lost off-screen. The order number field is always editable,
-  in both create and edit mode — renaming an existing order updates the row in place
-  (matched by internal id, not the old number) and is checked server-side for
-  duplicates against the new number before the rename commits; shift-report entries
-  already logged against the old number are left as historical record, not renamed
-  along with it. UIC is always read-only, live-derived from the Work center field as
+  in both create and edit mode — renaming an existing order sends a hidden
+  `originalOrderNumber` alongside the new value so the server can update the correct
+  row (matched by its previous number) and is checked server-side for duplicates
+  against the new number before the rename commits; shift-report entries already
+  logged against the old number are left as historical record, not renamed along
+  with it. UIC is always read-only, live-derived from the Work center field as
   you type. Tier and "waiting for repair" are not editable here — see Do's and Don'ts.
   A "Delete" button (edit mode only, left side of the footer) requires an inline
   confirm step before it archives the order (`archived = true`, never a hard delete —
@@ -463,22 +473,37 @@ belong inside the account menu.
 - **`{report-print-page}`** — unchanged: light, D-DIN-less now (plain sentence-case
   headings to match the rest of the app), rule-lined table, totals row,
   signature/prepared-by block. A4 landscape PDF / 1600px-wide JPG.
+- **Internal Repair Planner** — a second data table, alongside Orders, tracking
+  longer-running engine/APU overhaul jobs (customer, type, serial, EO, workscope,
+  induction date, RPC-1/RPC-2 assignees, Gate 4 status, project status, remark). Same
+  table conventions as Orders — Excel-style column filters, a clickable first-column
+  link opening an opaque edit dialog with Delete (soft-archive) — reusing the same
+  `{ColumnFilter}` component (now shared, not orders-specific) and `{badge-status}`
+  treatment for Gate4/project status. RPC-1/RPC-2 use `{PersonBadge}` instead of a
+  fixed-mapping badge, since assignees are free text with no master list yet.
 
 ## Do's and Don'ts
 
 ### Do
 - Use sentence case everywhere — this is the language's defining change.
-- Apply vibrancy (blur + translucency) only to fixed chrome: sidebar, topbar, the
-  login panel, and small floating panels like the column-filter dropdown. Never to
-  table body rows, and never to modals (see next point).
-- Keep modals — order edit, routing popover, add user, reset password, change
-  password — **opaque** (`{colors.*.surface-solid}`), not vibrancy. They need to fully
-  occlude a data-dense page behind them; blur read as muddy there in practice.
+- Apply vibrancy (blur + translucency) **only** to fixed chrome that sits over bare
+  canvas and never scrolls independently: the sidebar, the topbar, the login panel,
+  and the mobile slide-over. That's the full list.
+- Keep every floating/overlay surface that sits **over content** — modals (order edit,
+  routing popover, add user, reset password, change password, repair-planner entry),
+  the column-filter dropdown, the avatar menu — **opaque** (`{colors.*.surface-solid}`),
+  not vibrancy. An earlier version put vibrancy on these and they read as
+  washed-out/muddy over table rows and page content; blur only works when there's
+  bare canvas behind it, which none of these have.
 - Keep exactly one `{button-primary}` per view.
 - Keep status colors semantic-only; the chrome itself stays neutral + one accent.
 - Respect the user's theme choice across sessions (persisted, not reset on reload).
-- Never hard-delete an operational record (orders, shift entries) — archive/soft-delete
-  only, even when the UI calls the action "Delete."
+- Never hard-delete an operational record (orders, shift entries, repair-planner
+  entries) — archive/soft-delete only, even when the UI calls the action "Delete."
+- Serve small static brand assets (the logo) as plain `<img>`, not `next/image`. The
+  optimization pipeline is unnecessary for an already-small PNG and was an observed
+  point of failure (the logo intermittently rendered as a broken image after the
+  image-optimization request failed).
 
 ### Don't
 - Don't use uppercase tracked type anywhere — that was the previous language.

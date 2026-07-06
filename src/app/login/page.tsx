@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState } from "react";
 import { loginAction } from "./actions";
 
@@ -10,14 +9,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="vibrancy w-full max-w-[400px] rounded-lg border border-border p-8 shadow-[var(--shadow-popover)]">
-        <Image
-          src="/logo_only_black.png"
-          alt="RepairX"
-          width={40}
-          height={40}
-          priority
-          className="mb-3 dark:invert"
-        />
+        {/* Plain <img>, not next/image: this is a tiny static asset already the right
+            size, and the optimization pipeline was an unnecessary point of failure
+            (the logo intermittently rendered as a broken image). */}
+        <img src="/logo_only_black.png" alt="RepairX" width={40} height={40} className="mb-3 dark:invert" />
         <h1 className="text-[22px] font-semibold text-text-primary mb-1">RepairX</h1>
         <p className="text-sm text-text-secondary mb-8">
           Repair production control dashboard
