@@ -3,6 +3,7 @@ import { auth, signOut } from "@/lib/auth";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarToggleButton } from "@/components/sidebar-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ChangePasswordButton } from "@/components/change-password-dialog";
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <ChangePasswordButton />
             <span className="text-sm text-text-secondary">
               {session.user.name}{" "}
               <span className="data-mono text-xs text-text-tertiary">

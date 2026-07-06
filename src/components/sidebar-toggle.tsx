@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "repairx-sidebar-collapsed";
 const TOGGLE_EVENT = "repairx-sidebar-toggle";
@@ -47,24 +49,54 @@ export function useSidebarState() {
   };
 }
 
+function toggleCollapsed() {
+  const next = !readCollapsed();
+  window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+  window.dispatchEvent(new CustomEvent(TOGGLE_EVENT));
+}
+
+function openMobileSidebar() {
+  window.dispatchEvent(new CustomEvent(MOBILE_EVENT, { detail: true }));
+}
+
+/** Desktop/tablet: the sidebar logo itself is the collapse toggle. Mobile: the
+ * sidebar is off-canvas entirely, so this stays as a topbar hamburger there instead. */
 export function SidebarToggleButton() {
   return (
     <button
       onClick={() => {
         if (isMobileViewport()) {
-          window.dispatchEvent(new CustomEvent(MOBILE_EVENT, { detail: true }));
+          openMobileSidebar();
         } else {
-          const next = !readCollapsed();
-          window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-          window.dispatchEvent(new CustomEvent(TOGGLE_EVENT));
+          toggleCollapsed();
         }
       }}
-      aria-label="Toggle sidebar"
-      className="rounded-lg p-2 text-text-secondary hover:bg-surface hover:text-text-primary"
+      aria-label="Open menu"
+      className="rounded-lg p-2 text-text-secondary hover:bg-surface hover:text-text-primary md:hidden"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h16" />
       </svg>
+    </button>
+  );
+}
+
+/** The clickable logo/wordmark button inside the sidebar itself — toggles collapse
+ * on desktop/tablet. Not rendered in the mobile slide-over (there's nothing to
+ * collapse to there; the drawer is either open or closed). */
+export function SidebarLogoButton({ collapsed }: { collapsed: boolean }) {
+  return (
+    <button
+      onClick={toggleCollapsed}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      className={cn(
+        "flex items-center gap-2 rounded-lg py-2 hover:bg-surface",
+        collapsed ? "mx-2 justify-center px-0" : "mx-2 px-2",
+      )}
+    >
+      <Image src="/logo_only_black.png" alt="" width={24} height={24} priority className="dark:invert" />
+      {!collapsed && <span className="text-[17px] font-semibold text-text-primary">RepairX</span>}
     </button>
   );
 }

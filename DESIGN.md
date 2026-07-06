@@ -389,21 +389,24 @@ field.
   items) or 64px collapsed to an icon-only rail (icons only, labels as `title` tooltips).
   Vibrancy fill, hairline right border. Items in `{typography.body}` sentence case;
   idle = text-secondary; active = accent text + `{colors.*.accent-bg}` pill background.
-  Collapse state toggles via the topbar hamburger and persists to `localStorage` (same
-  pattern as the theme toggle) — it does not reset on reload. Below 768px the sidebar
-  is off-canvas entirely; the hamburger opens it as a slide-over with a scrim, always in
-  its expanded (labeled) form regardless of the desktop collapse state.
-- **`{topbar}`** — 52px, vibrancy fill, hamburger sidebar toggle + date on the left,
-  theme toggle + user menu + sign out on the right.
+  **The logo itself is the collapse toggle** — no separate hamburger button on
+  desktop/tablet. Clicking the logo/wordmark row collapses it to the icon rail;
+  clicking the (now icon-only) logo expands it again. State persists to `localStorage`
+  (same pattern as the theme toggle) and does not reset on reload. Below 768px the
+  sidebar is off-canvas entirely and the logo isn't visible to click, so a hamburger
+  button reappears in the topbar there (hidden ≥768px) to open the sidebar as a
+  slide-over with a scrim, always in its expanded (labeled) form.
+- **`{topbar}`** — 52px, vibrancy fill, date on the left (plus the mobile-only
+  hamburger), theme toggle + change-password + user menu + sign out on the right.
 
 ### Logo
 A single monochrome black mark (`logo_only_black.png`, transparent background) is the
-only brand asset. It appears at three sizes: the sidebar header (24px, next to the
-wordmark when expanded), the login card (40px, above the wordmark), and as the browser
-tab icon (`src/app/icon.png`, Next.js's auto-detected favicon convention — no manifest
-needed). Because the mark is black-only, it uses `dark:invert` in dark mode rather than
-a second asset — a plain CSS filter is enough for a flat monochrome PNG and keeps the
-asset count at one.
+only brand asset. It appears at three places: the sidebar header (24px — doubling as
+the collapse-toggle button, see Navigation), the login card (40px, above the wordmark),
+and as the browser tab icon (`src/app/icon.png`, Next.js's auto-detected favicon
+convention — no manifest needed). Because the mark is black-only, it uses `dark:invert`
+in dark mode rather than a second asset — a plain CSS filter is enough for a flat
+monochrome PNG and keeps the asset count at one.
 
 ### Signature components
 - **`{login-card}`** — centered vibrancy panel on bare canvas, `{rounded.lg}`,
@@ -424,6 +427,16 @@ asset count at one.
   each colored by its mapped UIC, with the current work center ringed/highlighted. If
   the chain repeats a work center, every occurrence is highlighted and a caption notes
   the data doesn't record which pass is current.
+- **Add user / reset password dialogs** (Masters page, admin-only) — same opaque
+  level-2 modal treatment, smaller (`max-w-md`/`max-w-sm`, no internal scroll needed).
+  Add user takes username/display name/password/role; duplicate usernames are rejected
+  with an inline message rather than silently overwriting. Reset password sets a new
+  password for another user without knowing their old one — the "I forgot my password"
+  path for a system with no email recovery.
+- **Change password dialog** (topbar, any authenticated user) — same modal treatment;
+  requires the current password (verified against the bcrypt hash server-side) plus a
+  new password entered twice. This is the self-service counterpart to admin reset —
+  a left-unlocked laptop can't change the password without knowing the existing one.
 - **`{report-print-page}`** — unchanged: light, D-DIN-less now (plain sentence-case
   headings to match the rest of the app), rule-lined table, totals row,
   signature/prepared-by block. A4 landscape PDF / 1600px-wide JPG.
