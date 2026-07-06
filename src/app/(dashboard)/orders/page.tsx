@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDistinctOrderValues, getOrders, ORDERS_PAGE_SIZE } from "@/lib/orders";
 import { OrdersTable } from "./orders-table";
+import { AddOrderButton } from "./add-order-button";
 
 interface PageProps {
   searchParams: Promise<{
@@ -76,7 +77,10 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary">Orders</h1>
-        <span className="data-mono text-sm text-text-secondary">{total} total</span>
+        <div className="flex items-center gap-4">
+          <span className="data-mono text-sm text-text-secondary">{total} total</span>
+          {canEdit && <AddOrderButton />}
+        </div>
       </div>
 
       <form className="flex flex-wrap gap-3" action="/orders">

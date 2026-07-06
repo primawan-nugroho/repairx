@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+// Form inputs submit blank numeric fields as "" (never omitted), and z.coerce.number()
+// turns "" into 0 rather than treating it as absent — so an unfilled Tier field would
+// fail a `.min(1)` check instead of being treated as "not set". This preprocesses blank
+// strings to undefined before coercion so optional/nullable numeric fields behave as
+// actually optional.
+function optionalNumber(schema: z.ZodNumber) {
+  return z.preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    schema.nullable().optional(),
+  );
+}
+
+// Same issue as optionalNumber but for date <input>s: an empty date field submits as
+// "" (not omitted), and Postgres rejects "" for a `date` column — it must be null.
+const optionalDateString = z.preprocess(
+  (val) => (val === "" || val == null ? null : val),
+  z.string().nullable().optional(),
+);
+
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required").max(64),
   password: z.string().min(1, "Password is required"),
@@ -7,17 +26,17 @@ export const loginSchema = z.object({
 
 export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required").max(32),
-  dateIn: z.string().nullable().optional(),
-  gate4Target: z.string().nullable().optional(),
+  dateIn: optionalDateString,
+  gate4Target: optionalDateString,
   description: z.string().max(2000).nullable().optional(),
   serialNumber: z.string().max(64).nullable().optional(),
   engineType: z.string().max(32).nullable().optional(),
   mwcRouting: z.string().max(256).nullable().optional(),
   mwcToday: z.string().max(16).nullable().optional(),
   uicToday: z.string().max(32).nullable().optional(),
-  planFinishDate: z.string().nullable().optional(),
+  planFinishDate: optionalDateString,
   waitingRepair: z.boolean().optional().default(false),
-  tier: z.coerce.number().int().min(1).max(3).nullable().optional(),
+  tier: optionalNumber(z.coerce.number().int().min(1).max(3)),
   status: z.string().max(64).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
   location: z.string().max(128).nullable().optional(),
@@ -33,11 +52,11 @@ export const shiftReportEntrySchema = z.object({
   uic: z.string().max(32).nullable().optional(),
   ops: z.string().max(32).nullable().optional(),
   activity: z.string().max(2000).nullable().optional(),
-  planMhrs: z.coerce.number().nonnegative().nullable().optional(),
-  consumedMhrs: z.coerce.number().nonnegative().nullable().optional(),
-  manhours: z.coerce.number().nonnegative().nullable().optional(),
-  progressPct: z.coerce.number().int().min(0).max(100).nullable().optional(),
-  stampPct: z.coerce.number().int().min(0).max(100).nullable().optional(),
+  planMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  manhours: optionalNumber(z.coerce.number().nonnegative()),
+  progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
+  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
   completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
 });

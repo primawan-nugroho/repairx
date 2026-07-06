@@ -37,7 +37,7 @@ export function WorkCenterRoutingPopover({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="vibrancy w-full max-w-lg rounded-lg border border-border p-6 shadow-[var(--shadow-popover)]">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface-solid p-6 shadow-[var(--shadow-popover)]">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="data-mono text-lg font-semibold text-text-primary">
             {order.orderNumber}

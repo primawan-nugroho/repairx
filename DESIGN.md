@@ -317,11 +317,14 @@ depth comes from blur + subtle shadow, not hairline separation alone.
 |---|---|---|
 | 0 | Flat canvas | Page background, table body |
 | 1 | `{colors.*.surface}` + `blur(20px)` + 1px border | Sidebar, topbar, cards, login panel |
-| 2 | Level 1 + soft shadow (`0 8px 24px rgba(0,0,0,0.12)` light / `0 8px 24px rgba(0,0,0,0.4)` dark) | Modals, popovers, dropdowns |
+| 2 | `{colors.*.surface-solid}` (opaque, no blur) + soft shadow (`0 8px 24px rgba(0,0,0,0.12)` light / `0 8px 24px rgba(0,0,0,0.4)` dark) + dark scrim behind | Modals: order edit dialog, work-center routing popover |
 
 Unlike the previous language, soft shadows are back (macOS's signature window/popover
-lift) — but only at level 2, and always paired with blur, never a bare flat shadow on
-an opaque card.
+lift). **Level 2 is deliberately opaque, not blurred** — an early version put vibrancy
+on the order edit dialog and it read as muddy/low-contrast with a dense form on top of
+it; blur belongs to level 1 chrome that floats over empty canvas, not to modals that
+need to fully occlude a data-dense page behind them. Column-filter dropdowns (level 1)
+keep their vibrancy since they're small and float over canvas, not over a table.
 
 ## Shapes
 
@@ -382,24 +385,41 @@ not just a border-color swap). Labels in `{typography.label}`, sentence case, ab
 field.
 
 ### Navigation
-- **`{sidebar-nav}`** — 220px, vibrancy fill, hairline right border. Items in
-  `{typography.body}` sentence case; idle = text-secondary; active = accent text +
-  `{colors.*.accent-bg}` pill background (not just a left accent bar — a full tinted
-  pill, matching Finder's sidebar selection).
-- **`{topbar}`** — 52px, vibrancy fill, app name at `{typography.display-md}`, theme
-  toggle + user menu + sign out on the right.
+- **`{sidebar-nav}`** — collapsible: 220px expanded (logo + wordmark + labeled icon
+  items) or 64px collapsed to an icon-only rail (icons only, labels as `title` tooltips).
+  Vibrancy fill, hairline right border. Items in `{typography.body}` sentence case;
+  idle = text-secondary; active = accent text + `{colors.*.accent-bg}` pill background.
+  Collapse state toggles via the topbar hamburger and persists to `localStorage` (same
+  pattern as the theme toggle) — it does not reset on reload. Below 768px the sidebar
+  is off-canvas entirely; the hamburger opens it as a slide-over with a scrim, always in
+  its expanded (labeled) form regardless of the desktop collapse state.
+- **`{topbar}`** — 52px, vibrancy fill, hamburger sidebar toggle + date on the left,
+  theme toggle + user menu + sign out on the right.
+
+### Logo
+A single monochrome black mark (`logo_only_black.png`, transparent background) is the
+only brand asset. It appears at three sizes: the sidebar header (24px, next to the
+wordmark when expanded), the login card (40px, above the wordmark), and as the browser
+tab icon (`src/app/icon.png`, Next.js's auto-detected favicon convention — no manifest
+needed). Because the mark is black-only, it uses `dark:invert` in dark mode rather than
+a second asset — a plain CSS filter is enough for a flat monochrome PNG and keeps the
+asset count at one.
 
 ### Signature components
 - **`{login-card}`** — centered vibrancy panel on bare canvas, `{rounded.lg}`,
-  soft level-2 shadow: wordmark, two inputs, one `{button-primary}`. The closest analog
-  to macOS's own login/System-Settings sign-in panel.
-- **Order edit dialog** — centered vibrancy modal (level-2 shadow, dark scrim behind)
-  opened by clicking an order number. Full order fields in a two-column form; UIC is
-  always read-only, live-derived from the Work center field as you type (never a free
-  input — the mapping is enforced here too, not just server-side). Viewer-role users
-  see the same dialog with every field disabled and no Save button — read access, not a
-  separate stripped-down view.
-- **Work center routing popover** — centered vibrancy modal opened by clicking a Work
+  soft level-2 shadow: logo, wordmark, two inputs, one `{button-primary}`. The closest
+  analog to macOS's own login/System-Settings sign-in panel.
+- **Order edit dialog** — centered **opaque** modal (`{colors.*.surface-solid}`, level-2
+  shadow, dark scrim behind), opened by clicking an order number or the "Add order"
+  button. Sized for a 13″ HD laptop: `max-height: 85vh` with the form area scrolling
+  internally while the header and footer (Cancel/Save) stay pinned, so the action row
+  is never lost off-screen. Handles both edit (order number fixed) and create (order
+  number becomes an editable required field, checked server-side for duplicates before
+  insert — the create path never silently overwrites an existing order). UIC is always
+  read-only, live-derived from the Work center field as you type. Viewer-role users see
+  the same dialog with every field disabled and no Save button.
+- **Work center routing popover** — centered **opaque** modal (same level-2 treatment
+  as the edit dialog, `max-height: 85vh` with internal scroll) opened by clicking a Work
   center badge. Renders the order's full `mwc_routing` chain as connected pill chips,
   each colored by its mapped UIC, with the current work center ringed/highlighted. If
   the chain repeats a work center, every occurrence is highlighted and a caption notes
@@ -431,10 +451,10 @@ field.
 
 | Name | Width | Key Changes |
 |---|---|---|
-| Desktop | ≥ 1280px | Full sidebar, all table columns |
-| Laptop | 1024–1279px | Sidebar collapses to icon rail; table hides Remark/Location |
+| Desktop | ≥ 1280px | Sidebar expanded or icon-rail per user's saved toggle; all table columns |
+| Laptop | 1024–1279px | Same user-toggleable sidebar; table hides Remark/Location |
 | Tablet | 768–1023px | Orders table scrolls horizontally, order no. pinned |
-| Mobile | < 768px | Sidebar becomes a slide-over; table becomes stacked cards |
+| Mobile | < 768px | Sidebar is off-canvas; hamburger opens it as a slide-over |
 
 - Touch targets ≥ 44px.
 - The print page ignores breakpoints entirely — fixed A4-landscape layout.

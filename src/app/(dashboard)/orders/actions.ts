@@ -22,12 +22,7 @@ export async function updateOrderStatus(orderNumber: string, status: string) {
   revalidatePath("/orders");
 }
 
-export async function upsertOrder(formData: FormData) {
-  const session = await auth();
-  if (!session || session.user.role === "viewer") {
-    throw new Error("Not authorized");
-  }
-
+function parseOrderForm(formData: FormData) {
   const raw = Object.fromEntries(formData.entries());
   const parsed = orderSchema.parse({
     ...raw,
@@ -37,7 +32,16 @@ export async function upsertOrder(formData: FormData) {
 
   // UIC is always derived from the work center (see wc-uic-map.ts) — never accept a
   // client-submitted UIC, even if the form somehow included one.
-  const values = { ...parsed, uicToday: deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null };
+  return { ...parsed, uicToday: deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null };
+}
+
+export async function upsertOrder(formData: FormData) {
+  const session = await auth();
+  if (!session || session.user.role === "viewer") {
+    throw new Error("Not authorized");
+  }
+
+  const values = parseOrderForm(formData);
 
   await db
     .insert(orders)
@@ -46,6 +50,32 @@ export async function upsertOrder(formData: FormData) {
       target: orders.orderNumber,
       set: { ...values, updatedAt: new Date() },
     });
+
+  revalidatePath("/orders");
+}
+
+export async function createOrder(formData: FormData) {
+  const session = await auth();
+  if (!session || session.user.role === "viewer") {
+    throw new Error("Not authorized");
+  }
+
+  const values = parseOrderForm(formData);
+  if (!values.orderNumber) {
+    throw new Error("Order number is required");
+  }
+
+  const [existing] = await db
+    .select({ orderNumber: orders.orderNumber })
+    .from(orders)
+    .where(eq(orders.orderNumber, values.orderNumber))
+    .limit(1);
+
+  if (existing) {
+    throw new Error(`Order ${values.orderNumber} already exists.`);
+  }
+
+  await db.insert(orders).values(values);
 
   revalidatePath("/orders");
 }

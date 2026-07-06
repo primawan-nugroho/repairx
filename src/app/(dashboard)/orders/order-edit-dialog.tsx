@@ -4,34 +4,48 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
 import { deriveUic } from "@/lib/wc-uic-map";
-import { upsertOrder } from "./actions";
+import { createOrder, upsertOrder } from "./actions";
 
-export function OrderEditDialog({
-  order,
-  canEdit,
-  onClose,
-}: {
-  order: Order;
+interface OrderEditDialogProps {
+  order?: Order;
   canEdit: boolean;
   onClose: () => void;
-}) {
+}
+
+const BLANK_ORDER: Partial<Order> = {};
+
+export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProps) {
+  const isNew = !order;
+  const base = order ?? BLANK_ORDER;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [mwcToday, setMwcToday] = useState(order.mwcToday ?? "");
-  const [waitingRepair, setWaitingRepair] = useState(order.waitingRepair);
+  const [error, setError] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState(base.orderNumber ?? "");
+  const [mwcToday, setMwcToday] = useState(base.mwcToday ?? "");
+  const [waitingRepair, setWaitingRepair] = useState(base.waitingRepair ?? false);
 
   const derivedUic = deriveUic(mwcToday);
 
   function handleSubmit(formData: FormData) {
+    setError(null);
+    formData.set("orderNumber", orderNumber.trim());
     formData.set("mwcToday", mwcToday);
     formData.set(
       "planFinishDate",
       waitingRepair ? "WR" : (formData.get("planFinishDate") as string) || "",
     );
     startTransition(async () => {
-      await upsertOrder(formData);
-      router.refresh();
-      onClose();
+      try {
+        if (isNew) {
+          await createOrder(formData);
+        } else {
+          await upsertOrder(formData);
+        }
+        router.refresh();
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      }
     });
   }
 
@@ -42,10 +56,10 @@ export function OrderEditDialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="vibrancy w-full max-w-2xl rounded-lg border border-border p-6 shadow-[var(--shadow-popover)]">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="data-mono text-lg font-semibold text-text-primary">
-            Order {order.orderNumber}
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
+          <h2 className="data-mono text-base font-semibold text-text-primary">
+            {isNew ? "Add order" : `Order ${order!.orderNumber}`}
           </h2>
           <button
             onClick={onClose}
@@ -56,14 +70,31 @@ export function OrderEditDialog({
           </button>
         </div>
 
-        <form action={handleSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input type="hidden" name="orderNumber" value={order.orderNumber} />
+        <form
+          action={handleSubmit}
+          className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
+        >
+          {isNew ? (
+            <div className="md:col-span-2">
+              <Field label="Order number">
+                <input
+                  value={orderNumber}
+                  onChange={(e) => setOrderNumber(e.target.value)}
+                  required
+                  disabled={!canEdit}
+                  className="field-input data-mono"
+                />
+              </Field>
+            </div>
+          ) : (
+            <input type="hidden" name="orderNumber" value={order!.orderNumber} />
+          )}
 
           <Field label="Date in">
             <input
               type="date"
               name="dateIn"
-              defaultValue={order.dateIn ?? ""}
+              defaultValue={base.dateIn ?? ""}
               disabled={!canEdit}
               className="field-input data-mono"
             />
@@ -72,7 +103,7 @@ export function OrderEditDialog({
             <input
               type="date"
               name="gate4Target"
-              defaultValue={order.gate4Target ?? ""}
+              defaultValue={base.gate4Target ?? ""}
               disabled={!canEdit}
               className="field-input data-mono"
             />
@@ -82,7 +113,7 @@ export function OrderEditDialog({
             <Field label="Description">
               <input
                 name="description"
-                defaultValue={order.description ?? ""}
+                defaultValue={base.description ?? ""}
                 disabled={!canEdit}
                 className="field-input"
               />
@@ -92,7 +123,7 @@ export function OrderEditDialog({
           <Field label="Serial number">
             <input
               name="serialNumber"
-              defaultValue={order.serialNumber ?? ""}
+              defaultValue={base.serialNumber ?? ""}
               disabled={!canEdit}
               className="field-input data-mono"
             />
@@ -100,7 +131,7 @@ export function OrderEditDialog({
           <Field label="Engine type">
             <input
               name="engineType"
-              defaultValue={order.engineType ?? ""}
+              defaultValue={base.engineType ?? ""}
               disabled={!canEdit}
               className="field-input"
             />
@@ -110,7 +141,7 @@ export function OrderEditDialog({
             <Field label="MWC routing">
               <input
                 name="mwcRouting"
-                defaultValue={order.mwcRouting ?? ""}
+                defaultValue={base.mwcRouting ?? ""}
                 disabled={!canEdit}
                 className="field-input data-mono"
               />
@@ -132,7 +163,7 @@ export function OrderEditDialog({
           <Field label="Tier">
             <select
               name="tier"
-              defaultValue={order.tier ?? ""}
+              defaultValue={base.tier ?? ""}
               disabled={!canEdit}
               className="field-input"
             >
@@ -145,7 +176,7 @@ export function OrderEditDialog({
           <Field label="Status">
             <input
               name="status"
-              defaultValue={order.status ?? ""}
+              defaultValue={base.status ?? ""}
               disabled={!canEdit}
               className="field-input"
             />
@@ -155,7 +186,7 @@ export function OrderEditDialog({
             <input
               type="date"
               name="planFinishDate"
-              defaultValue={order.waitingRepair ? "" : order.planFinishDate ?? ""}
+              defaultValue={base.waitingRepair ? "" : base.planFinishDate ?? ""}
               disabled={!canEdit || waitingRepair}
               className="field-input data-mono"
             />
@@ -173,7 +204,7 @@ export function OrderEditDialog({
           <Field label="Location">
             <input
               name="location"
-              defaultValue={order.location ?? ""}
+              defaultValue={base.location ?? ""}
               disabled={!canEdit}
               className="field-input"
             />
@@ -182,7 +213,7 @@ export function OrderEditDialog({
             <Field label="Remark">
               <textarea
                 name="remark"
-                defaultValue={order.remark ?? ""}
+                defaultValue={base.remark ?? ""}
                 disabled={!canEdit}
                 rows={2}
                 className="field-input"
@@ -190,7 +221,9 @@ export function OrderEditDialog({
             </Field>
           </div>
 
-          <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+          {error && <p className="md:col-span-2 text-sm text-status-urgent">{error}</p>}
+
+          <div className="md:col-span-2 flex justify-end gap-3 border-t border-border pt-3 -mx-5 -mb-4 px-5 pb-4">
             <button
               type="button"
               onClick={onClose}
@@ -204,7 +237,7 @@ export function OrderEditDialog({
                 disabled={pending}
                 className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
               >
-                {pending ? "Saving…" : "Save"}
+                {pending ? "Saving…" : isNew ? "Create order" : "Save"}
               </button>
             )}
           </div>
@@ -216,7 +249,7 @@ export function OrderEditDialog({
             border-radius: 8px;
             background: var(--surface);
             border: 1px solid var(--border);
-            padding: 8px 12px;
+            padding: 7px 12px;
             font-size: 14px;
             color: var(--text-primary);
           }

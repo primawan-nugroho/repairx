@@ -19,3 +19,6 @@ End Shift Report.xlsx
 tsconfig.tsbuildinfo
 ~$*.xlsx
 ~$*.xls
+
+.vercel
+.env*
