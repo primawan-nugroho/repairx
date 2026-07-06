@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
 import { deriveUic } from "@/lib/wc-uic-map";
-import { createOrder, upsertOrder } from "./actions";
+import { archiveOrder, createOrder, upsertOrder } from "./actions";
 
 interface OrderEditDialogProps {
   order?: Order;
@@ -22,7 +22,7 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState(base.orderNumber ?? "");
   const [mwcToday, setMwcToday] = useState(base.mwcToday ?? "");
-  const [waitingRepair, setWaitingRepair] = useState(base.waitingRepair ?? false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const derivedUic = deriveUic(mwcToday);
 
@@ -30,10 +30,6 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
     setError(null);
     formData.set("orderNumber", orderNumber.trim());
     formData.set("mwcToday", mwcToday);
-    formData.set(
-      "planFinishDate",
-      waitingRepair ? "WR" : (formData.get("planFinishDate") as string) || "",
-    );
     startTransition(async () => {
       try {
         if (isNew) {
@@ -41,6 +37,20 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
         } else {
           await upsertOrder(formData);
         }
+        router.refresh();
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      }
+    });
+  }
+
+  function handleDelete() {
+    if (!order) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await archiveOrder(order.orderNumber);
         router.refresh();
         onClose();
       } catch (e) {
@@ -74,21 +84,19 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           action={handleSubmit}
           className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
         >
-          {isNew ? (
-            <div className="md:col-span-2">
-              <Field label="Order number">
-                <input
-                  value={orderNumber}
-                  onChange={(e) => setOrderNumber(e.target.value)}
-                  required
-                  disabled={!canEdit}
-                  className="field-input data-mono"
-                />
-              </Field>
-            </div>
-          ) : (
-            <input type="hidden" name="orderNumber" value={order!.orderNumber} />
-          )}
+          {!isNew && <input type="hidden" name="originalOrderNumber" value={order!.orderNumber} />}
+
+          <div className="md:col-span-2">
+            <Field label="Order number">
+              <input
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                required
+                disabled={!canEdit}
+                className="field-input data-mono"
+              />
+            </Field>
+          </div>
 
           <Field label="Date in">
             <input
@@ -160,19 +168,6 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
             <input value={derivedUic ?? "-"} readOnly disabled className="field-input text-text-secondary" />
           </Field>
 
-          <Field label="Tier">
-            <select
-              name="tier"
-              defaultValue={base.tier ?? ""}
-              disabled={!canEdit}
-              className="field-input"
-            >
-              <option value="">-</option>
-              <option value="1">Tier 1</option>
-              <option value="2">Tier 2</option>
-              <option value="3">Tier 3</option>
-            </select>
-          </Field>
           <Field label="Status">
             <input
               name="status"
@@ -181,25 +176,15 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
               className="field-input"
             />
           </Field>
-
           <Field label="Plan finish date">
             <input
               type="date"
               name="planFinishDate"
-              defaultValue={base.waitingRepair ? "" : base.planFinishDate ?? ""}
-              disabled={!canEdit || waitingRepair}
+              defaultValue={base.planFinishDate ?? ""}
+              disabled={!canEdit}
               className="field-input data-mono"
             />
           </Field>
-          <label className="flex items-end gap-2 pb-2 text-sm text-text-secondary">
-            <input
-              type="checkbox"
-              checked={waitingRepair}
-              onChange={(e) => setWaitingRepair(e.target.checked)}
-              disabled={!canEdit}
-            />
-            Waiting for repair (WR, no date yet)
-          </label>
 
           <Field label="Location">
             <input
@@ -223,22 +208,59 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
 
           {error && <p className="md:col-span-2 text-sm text-status-urgent">{error}</p>}
 
-          <div className="md:col-span-2 flex justify-end gap-3 border-t border-border pt-3 -mx-5 -mb-4 px-5 pb-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
-            >
-              {canEdit ? "Cancel" : "Close"}
-            </button>
-            {canEdit && (
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
-              >
-                {pending ? "Saving…" : isNew ? "Create order" : "Save"}
-              </button>
+          <div className="md:col-span-2 flex items-center justify-between border-t border-border pt-3 -mx-5 -mb-4 px-5 pb-4">
+            <div>
+              {canEdit && !isNew && (
+                confirmingDelete ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-text-secondary">Delete this order?</span>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={pending}
+                      className="rounded-full bg-status-urgent px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                    >
+                      {pending ? "Deleting…" : "Confirm delete"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(false)}
+                      className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-text-primary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    className="rounded-full border border-status-urgent px-5 py-2 text-sm font-medium text-status-urgent"
+                  >
+                    Delete
+                  </button>
+                )
+              )}
+            </div>
+
+            {!confirmingDelete && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
+                >
+                  {canEdit ? "Cancel" : "Close"}
+                </button>
+                {canEdit && (
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  >
+                    {pending ? "Saving…" : isNew ? "Create order" : "Save"}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </form>

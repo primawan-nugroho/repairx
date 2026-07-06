@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   createColumnHelper,
   flexRender,
@@ -10,60 +10,9 @@ import {
 import type { Order } from "@/db/schema";
 import { StatusBadge } from "@/components/status-badge";
 import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
-import { updateOrderStatus } from "./actions";
 import { OrderEditDialog } from "./order-edit-dialog";
 import { WorkCenterRoutingPopover } from "./work-center-routing-popover";
 import { ColumnFilter } from "./column-filter";
-
-const STATUS_OPTIONS = [
-  "OPEN",
-  "PROGRESS",
-  "URGENT",
-  "TOP URGENT",
-  "w/f BDP",
-  "w/f Material",
-  "w/f Tools/Calibration",
-  "w/f Slot",
-];
-
-function tierAccentVar(tier: number | null | undefined) {
-  if (tier === 1) return "var(--status-urgent)";
-  if (tier === 2) return "var(--status-waiting)";
-  return "var(--status-open)";
-}
-
-function StatusEditableCell({ order }: { order: Order }) {
-  const [pending, startTransition] = useTransition();
-
-  return (
-    <div className="flex items-center gap-2">
-      <StatusBadge status={order.status} />
-      <select
-        aria-label={`Update status for order ${order.orderNumber}`}
-        className="rounded-md bg-surface border border-border px-1.5 py-1 text-xs text-text-secondary disabled:opacity-50"
-        disabled={pending}
-        defaultValue=""
-        onChange={(e) => {
-          const value = e.target.value;
-          if (!value) return;
-          startTransition(() => {
-            updateOrderStatus(order.orderNumber, value);
-          });
-          e.target.value = "";
-        }}
-      >
-        <option value="" disabled>
-          Change…
-        </option>
-        {STATUS_OPTIONS.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 interface FilterOptions {
   engineType: string[];
@@ -204,7 +153,7 @@ export function OrdersTable({
             options={filterOptions.status}
           />,
         ),
-      cell: (info) => <StatusEditableCell order={info.row.original} />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
     columnHelper.accessor("location", {
       header: () =>
@@ -262,11 +211,7 @@ export function OrdersTable({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-t border-border hover:bg-surface"
-                style={{ borderLeft: `2px solid ${tierAccentVar(row.original.tier)}` }}
-              >
+              <tr key={row.id} className="border-t border-border hover:bg-surface">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="whitespace-nowrap px-3 py-2.5 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

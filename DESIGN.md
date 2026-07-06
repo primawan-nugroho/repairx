@@ -227,8 +227,8 @@ Two surfaces exist:
 | `waiting` | `#a05a00` | `#ffb340` | any `w/f …` waiting state |
 | `urgent` | `#d70015` | `#ff453a` | URGENT / TOP URGENT / overdue Gate 4 |
 
-Rules unchanged from the previous language: status colors appear only in badges, table
-status cells, and small tier accents — never as panel backgrounds or headings. Badge
+Rules unchanged from the previous language: status colors appear only in badges and
+table status cells — never as panel backgrounds or headings. Badge
 style is always a **tint** (14–20% opacity fill + the solid hue as text), matching
 macOS's tag/label pill convention — no more separate "solid" variant for urgent states;
 weight comes from the hue itself (red reads urgent at any opacity).
@@ -355,8 +355,12 @@ one click.
   ("Order", not "ORDER"). Every column carries a small ▾ filter affordance next to its
   label (see Column filter below) — an Excel-style AutoFilter, not a separate top bar.
 - Body rows: flat canvas (no vibrancy), 1px bottom border, hover → `{colors.*.surface}`
-  tint. Tier no longer has its own column — it shows as a slim left-edge color accent
-  only (status palette: tier 1 = urgent red, tier 2 = waiting amber, tier 3 = open gray).
+  tint. Tier is no longer surfaced in the table at all (column and row-edge accent both
+  removed) — the `tier` column stays in the database but isn't shown or edited anywhere
+  in the app currently.
+- Status is a plain read-only badge in the table — no inline "Change…" dropdown.
+  Editing status happens only through the order edit dialog, alongside every other
+  field, rather than as a table-row shortcut.
 - Order number is a clickable accent-colored link, not plain mono text — clicking opens
   the order edit dialog (see Signature components).
 - Order number, serial, dates, manhours stay in `{typography.data-mono}`.
@@ -397,16 +401,28 @@ field.
   button reappears in the topbar there (hidden ≥768px) to open the sidebar as a
   slide-over with a scrim, always in its expanded (labeled) form.
 - **`{topbar}`** — 52px, vibrancy fill, date on the left (plus the mobile-only
-  hamburger), theme toggle + change-password + user menu + sign out on the right.
+  hamburger), theme toggle + avatar menu on the right (see Avatar menu below).
 
 ### Logo
 A single monochrome black mark (`logo_only_black.png`, transparent background) is the
-only brand asset. It appears at three places: the sidebar header (24px — doubling as
-the collapse-toggle button, see Navigation), the login card (40px, above the wordmark),
-and as the browser tab icon (`src/app/icon.png`, Next.js's auto-detected favicon
-convention — no manifest needed). Because the mark is black-only, it uses `dark:invert`
-in dark mode rather than a second asset — a plain CSS filter is enough for a flat
-monochrome PNG and keeps the asset count at one.
+only brand asset. It appears at three places: the sidebar header (24px expanded, 32px
+collapsed — see Navigation; larger when collapsed since it's the only thing in the
+64px rail and needs to read clearly on its own), the login card (40px, above the
+wordmark), and as the browser tab icon (`src/app/icon.png`, Next.js's auto-detected
+favicon convention — no manifest needed). Because the mark is black-only, it uses
+`dark:invert` in dark mode rather than a second asset — a plain CSS filter is enough
+for a flat monochrome PNG and keeps the asset count at one.
+
+### Avatar menu
+Replaces standalone "change password" and "sign out" topbar buttons with a single
+32px circular avatar button (border `{colors.*.border}`, no padding — the generated
+avatar art fills the circle edge-to-edge). The avatar is a deterministic per-user
+illustration (DiceBear's "micah" style, seeded by username, so the same person always
+gets the same face — generated server-side in the dashboard layout, not shipped as a
+client dependency). Clicking opens a vibrancy dropdown: name + role header, then
+"Change password" and "Sign out" as plain list items. Theme toggle stays a separate
+topbar button — it's a global page preference, not an account action, so it doesn't
+belong inside the account menu.
 
 ### Signature components
 - **`{login-card}`** — centered vibrancy panel on bare canvas, `{rounded.lg}`,
@@ -415,12 +431,19 @@ monochrome PNG and keeps the asset count at one.
 - **Order edit dialog** — centered **opaque** modal (`{colors.*.surface-solid}`, level-2
   shadow, dark scrim behind), opened by clicking an order number or the "Add order"
   button. Sized for a 13″ HD laptop: `max-height: 85vh` with the form area scrolling
-  internally while the header and footer (Cancel/Save) stay pinned, so the action row
-  is never lost off-screen. Handles both edit (order number fixed) and create (order
-  number becomes an editable required field, checked server-side for duplicates before
-  insert — the create path never silently overwrites an existing order). UIC is always
-  read-only, live-derived from the Work center field as you type. Viewer-role users see
-  the same dialog with every field disabled and no Save button.
+  internally while the header and footer (Cancel/Save/Delete) stay pinned, so the
+  action row is never lost off-screen. The order number field is always editable,
+  in both create and edit mode — renaming an existing order updates the row in place
+  (matched by internal id, not the old number) and is checked server-side for
+  duplicates against the new number before the rename commits; shift-report entries
+  already logged against the old number are left as historical record, not renamed
+  along with it. UIC is always read-only, live-derived from the Work center field as
+  you type. Tier and "waiting for repair" are not editable here — see Do's and Don'ts.
+  A "Delete" button (edit mode only, left side of the footer) requires an inline
+  confirm step before it archives the order (`archived = true`, never a hard delete —
+  matches the operational-record rule everywhere else in the app); it disappears from
+  the table immediately but the row survives in the database. Viewer-role users see
+  the same dialog with every field disabled and no Save/Delete buttons.
 - **Work center routing popover** — centered **opaque** modal (same level-2 treatment
   as the edit dialog, `max-height: 85vh` with internal scroll) opened by clicking a Work
   center badge. Renders the order's full `mwc_routing` chain as connected pill chips,
@@ -445,11 +468,17 @@ monochrome PNG and keeps the asset count at one.
 
 ### Do
 - Use sentence case everywhere — this is the language's defining change.
-- Apply vibrancy (blur + translucency) only to fixed chrome: sidebar, topbar, cards,
-  modals, login panel. Never to table body rows.
+- Apply vibrancy (blur + translucency) only to fixed chrome: sidebar, topbar, the
+  login panel, and small floating panels like the column-filter dropdown. Never to
+  table body rows, and never to modals (see next point).
+- Keep modals — order edit, routing popover, add user, reset password, change
+  password — **opaque** (`{colors.*.surface-solid}`), not vibrancy. They need to fully
+  occlude a data-dense page behind them; blur read as muddy there in practice.
 - Keep exactly one `{button-primary}` per view.
 - Keep status colors semantic-only; the chrome itself stays neutral + one accent.
 - Respect the user's theme choice across sessions (persisted, not reset on reload).
+- Never hard-delete an operational record (orders, shift entries) — archive/soft-delete
+  only, even when the UI calls the action "Delete."
 
 ### Don't
 - Don't use uppercase tracked type anywhere — that was the previous language.

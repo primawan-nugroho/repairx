@@ -8,57 +8,61 @@ import { orders } from "@/db/schema";
 import { orderSchema } from "@/lib/validations";
 import { deriveUic } from "@/lib/wc-uic-map";
 
-export async function updateOrderStatus(orderNumber: string, status: string) {
-  const session = await auth();
-  if (!session || session.user.role === "viewer") {
-    throw new Error("Not authorized");
-  }
-
-  await db
-    .update(orders)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(orders.orderNumber, orderNumber));
-
-  revalidatePath("/orders");
-}
-
 function parseOrderForm(formData: FormData) {
   const raw = Object.fromEntries(formData.entries());
-  const parsed = orderSchema.parse({
-    ...raw,
-    waitingRepair: raw.planFinishDate === "WR" || raw.waitingRepair === "on",
-    planFinishDate: raw.planFinishDate === "WR" ? null : raw.planFinishDate || null,
-  });
+  const parsed = orderSchema.parse(raw);
 
   // UIC is always derived from the work center (see wc-uic-map.ts) — never accept a
   // client-submitted UIC, even if the form somehow included one.
   return { ...parsed, uicToday: deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null };
 }
 
-export async function upsertOrder(formData: FormData) {
+async function requireEditor() {
   const session = await auth();
   if (!session || session.user.role === "viewer") {
     throw new Error("Not authorized");
   }
+  return session;
+}
+
+export async function upsertOrder(formData: FormData) {
+  await requireEditor();
 
   const values = parseOrderForm(formData);
+  const originalOrderNumber = (formData.get("originalOrderNumber") as string | null) || null;
 
-  await db
-    .insert(orders)
-    .values(values)
-    .onConflictDoUpdate({
-      target: orders.orderNumber,
-      set: { ...values, updatedAt: new Date() },
-    });
+  if (originalOrderNumber && originalOrderNumber !== values.orderNumber) {
+    // Order number is being renamed — check the new number isn't already taken by
+    // a different order before moving the business key.
+    const [existing] = await db
+      .select({ orderNumber: orders.orderNumber })
+      .from(orders)
+      .where(eq(orders.orderNumber, values.orderNumber))
+      .limit(1);
+
+    if (existing) {
+      throw new Error(`Order ${values.orderNumber} already exists.`);
+    }
+
+    await db
+      .update(orders)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(orders.orderNumber, originalOrderNumber));
+  } else {
+    await db
+      .insert(orders)
+      .values(values)
+      .onConflictDoUpdate({
+        target: orders.orderNumber,
+        set: { ...values, updatedAt: new Date() },
+      });
+  }
 
   revalidatePath("/orders");
 }
 
 export async function createOrder(formData: FormData) {
-  const session = await auth();
-  if (!session || session.user.role === "viewer") {
-    throw new Error("Not authorized");
-  }
+  await requireEditor();
 
   const values = parseOrderForm(formData);
   if (!values.orderNumber) {
@@ -76,6 +80,17 @@ export async function createOrder(formData: FormData) {
   }
 
   await db.insert(orders).values(values);
+
+  revalidatePath("/orders");
+}
+
+export async function archiveOrder(orderNumber: string) {
+  await requireEditor();
+
+  await db
+    .update(orders)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(eq(orders.orderNumber, orderNumber));
 
   revalidatePath("/orders");
 }

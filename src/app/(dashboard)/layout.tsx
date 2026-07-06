@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { generateAvatarSvg } from "@/lib/avatar";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarToggleButton } from "@/components/sidebar-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ChangePasswordButton } from "@/components/change-password-dialog";
+import { AvatarMenu } from "@/components/avatar-menu";
 
 export default async function DashboardLayout({
   children,
@@ -12,6 +13,8 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
+
+  const avatarSvg = generateAvatarSvg(session.user.username);
 
   return (
     <div className="flex min-h-screen bg-canvas">
@@ -32,23 +35,7 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <ChangePasswordButton />
-            <span className="text-sm text-text-secondary">
-              {session.user.name}{" "}
-              <span className="data-mono text-xs text-text-tertiary">
-                ({session.user.role})
-              </span>
-            </span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
-              <button className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-text-primary hover:border-border-strong">
-                Sign out
-              </button>
-            </form>
+            <AvatarMenu avatarSvg={avatarSvg} name={session.user.name ?? ""} role={session.user.role} />
           </div>
         </header>
 

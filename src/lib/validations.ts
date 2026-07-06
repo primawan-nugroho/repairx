@@ -24,6 +24,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+// Tier and waiting-repair are no longer editable from the order form (removed from
+// the UI per product decision), so they're intentionally absent from this schema —
+// not just unset in the form. If they were present with a `.default(...)`, zod would
+// fill in a default value on every save (since the field is always missing from
+// FormData now), silently overwriting existing DB values on every unrelated edit.
+// Leaving them out of the parsed object means drizzle omits them from the SQL
+// entirely, preserving whatever was already stored.
 export const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required").max(32),
   dateIn: optionalDateString,
@@ -35,8 +42,6 @@ export const orderSchema = z.object({
   mwcToday: z.string().max(16).nullable().optional(),
   uicToday: z.string().max(32).nullable().optional(),
   planFinishDate: optionalDateString,
-  waitingRepair: z.boolean().optional().default(false),
-  tier: optionalNumber(z.coerce.number().int().min(1).max(3)),
   status: z.string().max(64).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
   location: z.string().max(128).nullable().optional(),

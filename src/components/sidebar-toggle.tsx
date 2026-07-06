@@ -91,11 +91,18 @@ export function SidebarLogoButton({ collapsed }: { collapsed: boolean }) {
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       className={cn(
-        "flex items-center gap-2 rounded-lg py-2 hover:bg-surface",
-        collapsed ? "mx-2 justify-center px-0" : "mx-2 px-2",
+        "flex w-full items-center gap-2 rounded-lg py-2.5 hover:bg-surface",
+        collapsed ? "justify-center px-0" : "mx-2 w-auto px-2",
       )}
     >
-      <Image src="/logo_only_black.png" alt="" width={24} height={24} priority className="dark:invert" />
+      <Image
+        src="/logo_only_black.png"
+        alt=""
+        width={collapsed ? 32 : 24}
+        height={collapsed ? 32 : 24}
+        priority
+        className="dark:invert"
+      />
       {!collapsed && <span className="text-[17px] font-semibold text-text-primary">RepairX</span>}
     </button>
   );

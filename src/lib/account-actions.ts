@@ -3,10 +3,14 @@
 import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { compare, hash } from "bcryptjs";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { changePasswordSchema } from "@/lib/validations";
+
+export async function signOutAction() {
+  await signOut({ redirectTo: "/login" });
+}
 
 export async function changeOwnPasswordAction(formData: FormData) {
   const session = await auth();
