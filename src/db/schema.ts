@@ -70,6 +70,34 @@ export const shiftReportEntries = pgTable("shift_report_entries", {
   archived: boolean("archived").notNull().default(false),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Daily Menu — the pre-shift plan shared with production personnel before a shift
+// starts. Deliberately a separate table from shift_report_entries (not a "plan" flag
+// on the same rows): it's seeded from the previous shift's report but then edited
+// independently, and the end-shift report must stay an untouched operational record
+// of what actually happened (see CLAUDE.md: never mutate operational records).
+export const dailyMenuEntries = pgTable("daily_menu_entries", {
+  id: serial("id").primaryKey(),
+  menuDate: date("menu_date").notNull(),
+  shift: shiftEnum("shift").notNull(),
+  orderNumber: varchar("order_number", { length: 32 }).notNull(),
+  workCenter: varchar("work_center", { length: 16 }),
+  uic: varchar("uic", { length: 32 }),
+  ops: varchar("ops", { length: 32 }),
+  activity: text("activity"),
+  planMhrs: numeric("plan_mhrs", { precision: 8, scale: 2 }),
+  consumedMhrs: numeric("consumed_mhrs", { precision: 8, scale: 2 }),
+  manhours: numeric("manhours", { precision: 8, scale: 2 }),
+  progressPct: integer("progress_pct"),
+  stampPct: integer("stamp_pct"),
+  completenessStatus: varchar("completeness_status", { length: 32 }),
+  remark: text("remark"),
+  archived: boolean("archived").notNull().default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Internal Repair Planner — tracks longer-running engine/APU overhaul jobs
@@ -102,3 +130,5 @@ export type ShiftReportEntry = typeof shiftReportEntries.$inferSelect;
 export type NewShiftReportEntry = typeof shiftReportEntries.$inferInsert;
 export type RepairPlannerEntry = typeof repairPlannerEntries.$inferSelect;
 export type NewRepairPlannerEntry = typeof repairPlannerEntries.$inferInsert;
+export type DailyMenuEntry = typeof dailyMenuEntries.$inferSelect;
+export type NewDailyMenuEntry = typeof dailyMenuEntries.$inferInsert;

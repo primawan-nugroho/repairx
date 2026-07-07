@@ -56,9 +56,19 @@ export function WorkCenterBadge({
 
 /** Same categorical palette, applied to a free-text name (e.g. a job assignee)
  * instead of a work center/UIC — see personColorKey. */
-export function PersonBadge({ name }: { name: string | null | undefined }) {
+export function PersonBadge({
+  name,
+  colorMap,
+}: {
+  name: string | null | undefined;
+  /** Roster-based color assignment (see buildPersonColorMap) — preferred over the
+   * hash fallback because it guarantees every name in a known roster gets a
+   * distinct hue instead of risking hash collisions. */
+  colorMap?: Record<string, string>;
+}) {
   if (!name) return <span className="text-text-tertiary">-</span>;
-  const key = personColorKey(name);
+  const trimmed = name.trim();
+  const key = (colorMap && colorMap[trimmed]) || personColorKey(name);
   return (
     <span
       className={cn(

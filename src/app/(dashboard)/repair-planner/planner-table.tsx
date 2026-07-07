@@ -18,11 +18,15 @@ interface FilterOptions {
   engineApu: string[];
   customer: string[];
   engineType: string[];
+  serialNumber: string[];
   eo: string[];
+  workscope: string[];
+  inductionDate: string[];
   rpc1: string[];
   rpc2: string[];
   gate4Status: string[];
   projectStatus: string[];
+  remark: string[];
 }
 
 export function PlannerTable({
@@ -30,11 +34,13 @@ export function PlannerTable({
   canEdit,
   currentSearch,
   filterOptions,
+  rpcColorMap,
 }: {
   data: RepairPlannerEntry[];
   canEdit: boolean;
   currentSearch: Record<string, string | undefined>;
   filterOptions: FilterOptions;
+  rpcColorMap: Record<string, string>;
 }) {
   const [editingEntry, setEditingEntry] = useState<RepairPlannerEntry | null>(null);
 
@@ -50,6 +56,28 @@ export function PlannerTable({
   }
 
   const columns = [
+    columnHelper.accessor("serialNumber", {
+      header: () =>
+        headerWithFilter(
+          "SN",
+          <ColumnFilter
+            basePath="/repair-planner"
+            label="SN"
+            paramKey="serialNumber"
+            currentSearch={currentSearch}
+            type="select"
+            options={filterOptions.serialNumber}
+          />,
+        ),
+      cell: (info) => (
+        <button
+          onClick={() => setEditingEntry(info.row.original)}
+          className="data-mono text-accent hover:underline"
+        >
+          {info.getValue() || "-"}
+        </button>
+      ),
+    }),
     columnHelper.accessor("engineApu", {
       header: () =>
         headerWithFilter(
@@ -63,14 +91,7 @@ export function PlannerTable({
             options={filterOptions.engineApu}
           />,
         ),
-      cell: (info) => (
-        <button
-          onClick={() => setEditingEntry(info.row.original)}
-          className="text-accent hover:underline"
-        >
-          {info.getValue() || "-"}
-        </button>
-      ),
+      cell: (info) => info.getValue() || "-",
     }),
     columnHelper.accessor("customer", {
       header: () =>
@@ -100,10 +121,6 @@ export function PlannerTable({
           />,
         ),
     }),
-    columnHelper.accessor("serialNumber", {
-      header: "SN",
-      cell: (info) => <span className="data-mono">{info.getValue() || "-"}</span>,
-    }),
     columnHelper.accessor("eo", {
       header: () =>
         headerWithFilter(
@@ -119,11 +136,33 @@ export function PlannerTable({
         ),
     }),
     columnHelper.accessor("workscope", {
-      header: "Workscope",
+      header: () =>
+        headerWithFilter(
+          "Workscope",
+          <ColumnFilter
+            basePath="/repair-planner"
+            label="Workscope"
+            paramKey="workscope"
+            currentSearch={currentSearch}
+            type="select"
+            options={filterOptions.workscope}
+          />,
+        ),
       cell: (info) => <span className="line-clamp-1 max-w-[220px]">{info.getValue() || "-"}</span>,
     }),
     columnHelper.accessor("inductionDate", {
-      header: "Induction date",
+      header: () =>
+        headerWithFilter(
+          "Induction date",
+          <ColumnFilter
+            basePath="/repair-planner"
+            label="Induction date"
+            paramKey="inductionDate"
+            currentSearch={currentSearch}
+            type="select"
+            options={filterOptions.inductionDate}
+          />,
+        ),
       cell: (info) => <span className="data-mono">{formatDate(info.getValue())}</span>,
     }),
     columnHelper.accessor("rpc1", {
@@ -139,7 +178,7 @@ export function PlannerTable({
             options={filterOptions.rpc1}
           />,
         ),
-      cell: (info) => <PersonBadge name={info.getValue()} />,
+      cell: (info) => <PersonBadge name={info.getValue()} colorMap={rpcColorMap} />,
     }),
     columnHelper.accessor("rpc2", {
       header: () =>
@@ -154,7 +193,7 @@ export function PlannerTable({
             options={filterOptions.rpc2}
           />,
         ),
-      cell: (info) => <PersonBadge name={info.getValue()} />,
+      cell: (info) => <PersonBadge name={info.getValue()} colorMap={rpcColorMap} />,
     }),
     columnHelper.accessor("gate4Status", {
       header: () =>
@@ -187,7 +226,18 @@ export function PlannerTable({
       cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
     columnHelper.accessor("remark", {
-      header: "Remark",
+      header: () =>
+        headerWithFilter(
+          "Remark",
+          <ColumnFilter
+            basePath="/repair-planner"
+            label="Remark"
+            paramKey="remark"
+            currentSearch={currentSearch}
+            type="select"
+            options={filterOptions.remark}
+          />,
+        ),
       cell: (info) => <span className="line-clamp-1 max-w-[200px]">{info.getValue() || "-"}</span>,
     }),
   ];
@@ -238,7 +288,18 @@ export function PlannerTable({
       </div>
 
       {editingEntry && (
-        <PlannerEntryDialog entry={editingEntry} canEdit={canEdit} onClose={() => setEditingEntry(null)} />
+        <PlannerEntryDialog
+          entry={editingEntry}
+          canEdit={canEdit}
+          onClose={() => setEditingEntry(null)}
+          options={{
+            engineType: filterOptions.engineType,
+            gate4Status: filterOptions.gate4Status,
+            projectStatus: filterOptions.projectStatus,
+            rpc1: filterOptions.rpc1,
+            rpc2: filterOptions.rpc2,
+          }}
+        />
       )}
     </>
   );

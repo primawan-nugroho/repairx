@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* The app toggles theme via a data-theme attribute (see theme-toggle.tsx), not the
+   OS color-scheme preference — so `dark:` must key off that attribute, not the
+   default prefers-color-scheme media query, or `dark:` utilities silently track the
+   OS setting instead of the in-app toggle (e.g. logo inverting to invisible when the
+   app is in light mode but the OS is in dark mode). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* RepairX theme tokens — derived from DESIGN.md (macOS Sonoma-esque, light/dark) */
 :root,
 [data-theme="light"] {

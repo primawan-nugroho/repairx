@@ -55,3 +55,18 @@ export function personColorKey(name: string | null | undefined): string {
   const index = Math.abs(hash) % PERSON_COLOR_SLUGS.length;
   return PERSON_COLOR_SLUGS[index] ?? "unmapped";
 }
+
+/** Assigns each name in `names` the next color slot in turn (rather than hashing),
+ * so that within one known roster every name gets a distinct hue — hashing alone can
+ * collide two names onto the same slot even when there's room for both to differ. */
+export function buildPersonColorMap(names: Array<string | null | undefined>): Record<string, string> {
+  const map: Record<string, string> = {};
+  let next = 0;
+  for (const raw of names) {
+    const name = raw?.trim();
+    if (!name || name in map) continue;
+    map[name] = PERSON_COLOR_SLUGS[next % PERSON_COLOR_SLUGS.length] ?? "unmapped";
+    next += 1;
+  }
+  return map;
+}

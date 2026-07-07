@@ -9,12 +9,11 @@ const NAV_ITEMS = [
     href: "/orders",
     label: "Orders",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M4 6h16M4 12h16M4 18h10"
-      />
+      <>
+        <rect x="5" y="3.5" width="14" height="17" rx="2" strokeWidth={1.8} />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 3v2.4M15 3v2.4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 11h8M8 14.5h8M8 18h5" />
+      </>
     ),
   },
   {
@@ -35,6 +34,16 @@ const NAV_ITEMS = [
           d="M6 6h12v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6Z"
         />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6M9 16h4" />
+      </>
+    ),
+  },
+  {
+    href: "/daily-menu",
+    label: "Daily menu",
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8.5" strokeWidth={1.8} />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 7.5v5l3 2" />
       </>
     ),
   },

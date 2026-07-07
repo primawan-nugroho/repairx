@@ -420,7 +420,13 @@ collapsed — see Navigation; larger when collapsed since it's the only thing in
 wordmark), and as the browser tab icon (`src/app/icon.png`, Next.js's auto-detected
 favicon convention — no manifest needed). Because the mark is black-only, it uses
 `dark:invert` in dark mode rather than a second asset — a plain CSS filter is enough
-for a flat monochrome PNG and keeps the asset count at one.
+for a flat monochrome PNG and keeps the asset count at one. `dark:` is repointed via
+`@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *))` in
+`globals.css` to key off the app's own `data-theme` attribute — Tailwind's default
+`dark:` tracks the OS `prefers-color-scheme` media query instead, which meant the logo
+(and any other `dark:` utility) silently followed the OS setting rather than the
+in-app toggle, e.g. inverting to invisible-on-white when the app was in light mode but
+the OS was in dark mode.
 
 ### Avatar menu
 Replaces standalone "change password" and "sign out" topbar buttons with a single
@@ -476,11 +482,32 @@ belong inside the account menu.
 - **Internal Repair Planner** — a second data table, alongside Orders, tracking
   longer-running engine/APU overhaul jobs (customer, type, serial, EO, workscope,
   induction date, RPC-1/RPC-2 assignees, Gate 4 status, project status, remark). Same
-  table conventions as Orders — Excel-style column filters, a clickable first-column
-  link opening an opaque edit dialog with Delete (soft-archive) — reusing the same
-  `{ColumnFilter}` component (now shared, not orders-specific) and `{badge-status}`
-  treatment for Gate4/project status. RPC-1/RPC-2 use `{PersonBadge}` instead of a
-  fixed-mapping badge, since assignees are free text with no master list yet.
+  table conventions as Orders — every column is filterable (not just the categorical
+  ones), reusing the same `{ColumnFilter}` component (shared, not orders-specific).
+  Serial number (SN) is the leftmost column and the clickable primary key that opens
+  the opaque edit dialog with Delete (soft-archive) — Engine/APU is a plain cell.
+  The dialog's Engine type / Gate 4 status / Project status / RPC-1 / RPC-2 fields are
+  free-text inputs backed by an HTML `<datalist>` of the values already in the
+  database, so entry stays fast (pick an existing value) without locking out new ones
+  (no fixed master list yet for any of these). RPC-1/RPC-2 use `{PersonBadge}` colored
+  via `buildPersonColorMap` (`src/lib/utils.ts`) — every distinct name across both
+  columns gets the next color in the categorical palette in turn, guaranteeing distinct
+  hues within one roster (the hash-based `personColorKey` fallback risks two names
+  landing on the same slot; the roster-based assignment doesn't).
+- **End shift report / Daily menu** — grouped by **UIC** (not work center), since UIC
+  is what a shift-handover audience actually cares about (`groupByUic` in
+  `src/lib/shift-report.ts`, shared by both features), and shows the order's
+  Description (left-joined from `orders`) alongside each row. Rows are editable in
+  place via a shared `{GroupedEntriesView}`/edit-dialog pair
+  (`src/components/shift-entries/`) rather than being a write-once log — clicking an
+  order number opens the same opaque dialog pattern used elsewhere, with Delete
+  (soft-archive). The **Daily menu** is the pre-shift counterpart to the End shift
+  report: shared with production personnel before a shift starts, seeded with a
+  "Populate from previous shift" action that copies every entry (closed included) from
+  the immediately preceding shift's report — `daily_menu_entries` is a deliberately
+  separate table from `shift_report_entries`, not a "plan" flag on the same rows, so
+  the end-shift report stays an untouched operational record while the menu is edited
+  freely before/during the shift. Same print/export path as the end-shift report.
 
 ## Do's and Don'ts
 

@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { PlannerEntryDialog } from "./planner-entry-dialog";
 
-export function AddEntryButton() {
+interface DropdownOptions {
+  engineType: string[];
+  gate4Status: string[];
+  projectStatus: string[];
+  rpc1: string[];
+  rpc2: string[];
+}
+
+export function AddEntryButton({ options }: { options: DropdownOptions }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,7 +22,7 @@ export function AddEntryButton() {
       >
         Add entry
       </button>
-      {open && <PlannerEntryDialog canEdit onClose={() => setOpen(false)} />}
+      {open && <PlannerEntryDialog canEdit onClose={() => setOpen(false)} options={options} />}
     </>
   );
 }

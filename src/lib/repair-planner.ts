@@ -9,11 +9,15 @@ export interface RepairPlannerFilter {
   engineApu?: string[];
   customer?: string[];
   engineType?: string[];
+  serialNumber?: string[];
   eo?: string[];
+  workscope?: string[];
+  inductionDate?: string[];
   rpc1?: string[];
   rpc2?: string[];
   gate4Status?: string[];
   projectStatus?: string[];
+  remark?: string[];
   page?: number;
 }
 
@@ -34,12 +38,18 @@ export async function getRepairPlannerEntries(filter: RepairPlannerFilter) {
   if (filter.engineApu?.length) conditions.push(inArray(repairPlannerEntries.engineApu, filter.engineApu));
   if (filter.customer?.length) conditions.push(inArray(repairPlannerEntries.customer, filter.customer));
   if (filter.engineType?.length) conditions.push(inArray(repairPlannerEntries.engineType, filter.engineType));
+  if (filter.serialNumber?.length)
+    conditions.push(inArray(repairPlannerEntries.serialNumber, filter.serialNumber));
   if (filter.eo?.length) conditions.push(inArray(repairPlannerEntries.eo, filter.eo));
+  if (filter.workscope?.length) conditions.push(inArray(repairPlannerEntries.workscope, filter.workscope));
+  if (filter.inductionDate?.length)
+    conditions.push(inArray(repairPlannerEntries.inductionDate, filter.inductionDate));
   if (filter.rpc1?.length) conditions.push(inArray(repairPlannerEntries.rpc1, filter.rpc1));
   if (filter.rpc2?.length) conditions.push(inArray(repairPlannerEntries.rpc2, filter.rpc2));
   if (filter.gate4Status?.length) conditions.push(inArray(repairPlannerEntries.gate4Status, filter.gate4Status));
   if (filter.projectStatus?.length)
     conditions.push(inArray(repairPlannerEntries.projectStatus, filter.projectStatus));
+  if (filter.remark?.length) conditions.push(inArray(repairPlannerEntries.remark, filter.remark));
 
   const where = and(...conditions);
 
@@ -63,7 +73,19 @@ export async function getRepairPlannerEntries(filter: RepairPlannerFilter) {
 }
 
 export async function getDistinctRepairPlannerValues(
-  column: "engineApu" | "customer" | "engineType" | "eo" | "rpc1" | "rpc2" | "gate4Status" | "projectStatus",
+  column:
+    | "engineApu"
+    | "customer"
+    | "engineType"
+    | "serialNumber"
+    | "eo"
+    | "workscope"
+    | "inductionDate"
+    | "rpc1"
+    | "rpc2"
+    | "gate4Status"
+    | "projectStatus"
+    | "remark",
 ) {
   const rows = await db
     .selectDistinct({ value: repairPlannerEntries[column] })

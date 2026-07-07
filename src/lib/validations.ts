@@ -68,6 +68,25 @@ export const shiftReportEntrySchema = z.object({
 
 export type ShiftReportEntryInput = z.infer<typeof shiftReportEntrySchema>;
 
+// Editing an existing shift-report/daily-menu row never changes its date, shift, or
+// order number (those are the row's identity) — only the work fields. Shared between
+// the End Shift Report and Daily Menu edit dialogs, which have identical fields.
+export const shiftEntryUpdateSchema = z.object({
+  workCenter: z.string().max(16).nullable().optional(),
+  uic: z.string().max(32).nullable().optional(),
+  ops: z.string().max(32).nullable().optional(),
+  activity: z.string().max(2000).nullable().optional(),
+  planMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  manhours: optionalNumber(z.coerce.number().nonnegative()),
+  progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
+  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
+  completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
+  remark: z.string().max(2000).nullable().optional(),
+});
+
+export type ShiftEntryUpdateInput = z.infer<typeof shiftEntryUpdateSchema>;
+
 export const createUserSchema = z.object({
   username: z.string().min(1).max(64),
   password: z.string().min(8, "Password must be at least 8 characters"),

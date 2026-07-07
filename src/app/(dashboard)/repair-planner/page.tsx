@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDistinctRepairPlannerValues, getRepairPlannerEntries, REPAIR_PLANNER_PAGE_SIZE } from "@/lib/repair-planner";
+import { buildPersonColorMap } from "@/lib/utils";
 import { PlannerTable } from "./planner-table";
 import { AddEntryButton } from "./add-entry-button";
 
@@ -10,11 +11,15 @@ interface PageProps {
     engineApu?: string;
     customer?: string;
     engineType?: string;
+    serialNumber?: string;
     eo?: string;
+    workscope?: string;
+    inductionDate?: string;
     rpc1?: string;
     rpc2?: string;
     gate4Status?: string;
     projectStatus?: string;
+    remark?: string;
     page?: string;
   }>;
 }
@@ -27,32 +32,54 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const page = Number(params.page ?? "1") || 1;
 
-  const [{ rows, total }, engineApuOptions, customerOptions, engineTypeOptions, eoOptions, rpc1Options, rpc2Options, gate4Options, projectOptions] =
-    await Promise.all([
-      getRepairPlannerEntries({
-        q: params.q,
-        engineApu: toList(params.engineApu),
-        customer: toList(params.customer),
-        engineType: toList(params.engineType),
-        eo: toList(params.eo),
-        rpc1: toList(params.rpc1),
-        rpc2: toList(params.rpc2),
-        gate4Status: toList(params.gate4Status),
-        projectStatus: toList(params.projectStatus),
-        page,
-      }),
-      getDistinctRepairPlannerValues("engineApu"),
-      getDistinctRepairPlannerValues("customer"),
-      getDistinctRepairPlannerValues("engineType"),
-      getDistinctRepairPlannerValues("eo"),
-      getDistinctRepairPlannerValues("rpc1"),
-      getDistinctRepairPlannerValues("rpc2"),
-      getDistinctRepairPlannerValues("gate4Status"),
-      getDistinctRepairPlannerValues("projectStatus"),
-    ]);
+  const [
+    { rows, total },
+    engineApuOptions,
+    customerOptions,
+    engineTypeOptions,
+    serialNumberOptions,
+    eoOptions,
+    workscopeOptions,
+    inductionDateOptions,
+    rpc1Options,
+    rpc2Options,
+    gate4Options,
+    projectOptions,
+    remarkOptions,
+  ] = await Promise.all([
+    getRepairPlannerEntries({
+      q: params.q,
+      engineApu: toList(params.engineApu),
+      customer: toList(params.customer),
+      engineType: toList(params.engineType),
+      serialNumber: toList(params.serialNumber),
+      eo: toList(params.eo),
+      workscope: toList(params.workscope),
+      inductionDate: toList(params.inductionDate),
+      rpc1: toList(params.rpc1),
+      rpc2: toList(params.rpc2),
+      gate4Status: toList(params.gate4Status),
+      projectStatus: toList(params.projectStatus),
+      remark: toList(params.remark),
+      page,
+    }),
+    getDistinctRepairPlannerValues("engineApu"),
+    getDistinctRepairPlannerValues("customer"),
+    getDistinctRepairPlannerValues("engineType"),
+    getDistinctRepairPlannerValues("serialNumber"),
+    getDistinctRepairPlannerValues("eo"),
+    getDistinctRepairPlannerValues("workscope"),
+    getDistinctRepairPlannerValues("inductionDate"),
+    getDistinctRepairPlannerValues("rpc1"),
+    getDistinctRepairPlannerValues("rpc2"),
+    getDistinctRepairPlannerValues("gate4Status"),
+    getDistinctRepairPlannerValues("projectStatus"),
+    getDistinctRepairPlannerValues("remark"),
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(total / REPAIR_PLANNER_PAGE_SIZE));
   const canEdit = session?.user.role !== "viewer";
+  const rpcColorMap = buildPersonColorMap([...rpc1Options, ...rpc2Options]);
 
   const buildHref = (overrides: Record<string, string | undefined>) => {
     const next = new URLSearchParams();
@@ -67,11 +94,15 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
     params.engineApu ||
       params.customer ||
       params.engineType ||
+      params.serialNumber ||
       params.eo ||
+      params.workscope ||
+      params.inductionDate ||
       params.rpc1 ||
       params.rpc2 ||
       params.gate4Status ||
-      params.projectStatus,
+      params.projectStatus ||
+      params.remark,
   );
 
   return (
@@ -80,7 +111,17 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold text-text-primary">Internal repair planner</h1>
         <div className="flex items-center gap-4">
           <span className="data-mono text-sm text-text-secondary">{total} total</span>
-          {canEdit && <AddEntryButton />}
+          {canEdit && (
+            <AddEntryButton
+              options={{
+                engineType: engineTypeOptions,
+                gate4Status: gate4Options,
+                projectStatus: projectOptions,
+                rpc1: rpc1Options,
+                rpc2: rpc2Options,
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -112,15 +153,20 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
         data={rows}
         canEdit={canEdit}
         currentSearch={params}
+        rpcColorMap={rpcColorMap}
         filterOptions={{
           engineApu: engineApuOptions,
           customer: customerOptions,
           engineType: engineTypeOptions,
+          serialNumber: serialNumberOptions,
           eo: eoOptions,
+          workscope: workscopeOptions,
+          inductionDate: inductionDateOptions,
           rpc1: rpc1Options,
           rpc2: rpc2Options,
           gate4Status: gate4Options,
           projectStatus: projectOptions,
+          remark: remarkOptions,
         }}
       />
 

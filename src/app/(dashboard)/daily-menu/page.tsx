@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getShiftReportEntries, summarize } from "@/lib/shift-report";
-import { ShiftEntryForm } from "./entry-form";
+import { getDailyMenuEntries, getPreviousShift } from "@/lib/daily-menu";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
-import { updateShiftReportEntry, archiveShiftReportEntry } from "./actions";
+import { PopulateButton } from "./populate-button";
+import { updateDailyMenuEntry, archiveDailyMenuEntry } from "./actions";
 
 interface PageProps {
   searchParams: Promise<{ date?: string; shift?: string }>;
@@ -13,35 +13,38 @@ function todayIso() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 }
 
-export default async function ShiftReportPage({ searchParams }: PageProps) {
+export default async function DailyMenuPage({ searchParams }: PageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
-  const reportDate = params.date || todayIso();
+  const menuDate = params.date || todayIso();
   const shift = params.shift || "AM";
 
-  const entries = await getShiftReportEntries(reportDate, shift);
-  const summary = summarize(entries);
+  const entries = await getDailyMenuEntries(menuDate, shift);
   const canEdit = session?.user.role !== "viewer";
+  const prev = getPreviousShift(menuDate, shift);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary">End shift report</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Daily menu</h1>
         <Link
-          href={`/print/shift-report?date=${reportDate}&shift=${shift}`}
+          href={`/print/daily-menu?date=${menuDate}&shift=${shift}`}
           target="_blank"
           className="rounded-full border border-border px-5 py-2 text-xs font-medium text-text-primary hover:border-border-strong"
         >
           Export / print
         </Link>
       </div>
+      <p className="-mt-4 text-sm text-text-secondary">
+        Shared with production personnel before the shift starts — a plan, not the end-shift record.
+      </p>
 
-      <form className="flex flex-wrap items-end gap-3" action="/shift-report">
+      <form className="flex flex-wrap items-end gap-3" action="/daily-menu">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-text-secondary">Date</span>
           <input
             type="date"
             name="date"
-            defaultValue={reportDate}
+            defaultValue={menuDate}
             className="data-mono rounded-lg bg-surface border border-border px-3 py-2 text-sm"
           />
         </label>
@@ -65,30 +68,23 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <ShiftEntryForm reportDate={reportDate} shift={shift} />
-
-      <div className="bg-surface-solid flex gap-6 rounded-lg border border-border p-4">
-        <Stat label="Entries" value={summary.totalEntries} />
-        <Stat label="Closed" value={summary.closedCount} />
-        <Stat label="Manhours" value={summary.totalManhours} />
-      </div>
+      {entries.length === 0 && canEdit && (
+        <div className="bg-surface-solid flex items-center justify-between rounded-lg border border-border p-4">
+          <span className="text-sm text-text-secondary">
+            No menu yet for this date/shift — pull it from the previous shift ({prev.shift} on{" "}
+            {prev.date}) to start from what was already logged.
+          </span>
+          <PopulateButton menuDate={menuDate} shift={shift} />
+        </div>
+      )}
 
       <GroupedEntriesView
         entries={entries}
         canEdit={canEdit}
-        onSave={updateShiftReportEntry}
-        onDelete={archiveShiftReportEntry}
-        emptyMessage="No entries logged for this date/shift yet."
+        onSave={updateDailyMenuEntry}
+        onDelete={archiveDailyMenuEntry}
+        emptyMessage="No menu entries for this date/shift yet."
       />
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
     </div>
   );
 }

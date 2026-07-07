@@ -5,15 +5,24 @@ import { useRouter } from "next/navigation";
 import type { RepairPlannerEntry } from "@/db/schema";
 import { archiveRepairPlannerEntry, createRepairPlannerEntry, updateRepairPlannerEntry } from "./actions";
 
+interface DropdownOptions {
+  engineType: string[];
+  gate4Status: string[];
+  projectStatus: string[];
+  rpc1: string[];
+  rpc2: string[];
+}
+
 interface PlannerEntryDialogProps {
   entry?: RepairPlannerEntry;
   canEdit: boolean;
   onClose: () => void;
+  options: DropdownOptions;
 }
 
 const BLANK: Partial<RepairPlannerEntry> = {};
 
-export function PlannerEntryDialog({ entry, canEdit, onClose }: PlannerEntryDialogProps) {
+export function PlannerEntryDialog({ entry, canEdit, onClose, options }: PlannerEntryDialogProps) {
   const isNew = !entry;
   const base = entry ?? BLANK;
   const router = useRouter();
@@ -96,10 +105,16 @@ export function PlannerEntryDialog({ entry, canEdit, onClose }: PlannerEntryDial
           <Field label="Type">
             <input
               name="engineType"
+              list="dl-engine-type"
               defaultValue={base.engineType ?? ""}
               disabled={!canEdit}
               className="field-input data-mono"
             />
+            <datalist id="dl-engine-type">
+              {options.engineType.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </Field>
           <Field label="Serial number">
             <input
@@ -135,27 +150,61 @@ export function PlannerEntryDialog({ entry, canEdit, onClose }: PlannerEntryDial
           </div>
 
           <Field label="RPC-1">
-            <input name="rpc1" defaultValue={base.rpc1 ?? ""} disabled={!canEdit} className="field-input" />
+            <input
+              name="rpc1"
+              list="dl-rpc1"
+              defaultValue={base.rpc1 ?? ""}
+              disabled={!canEdit}
+              className="field-input"
+            />
+            <datalist id="dl-rpc1">
+              {options.rpc1.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </Field>
           <Field label="RPC-2">
-            <input name="rpc2" defaultValue={base.rpc2 ?? ""} disabled={!canEdit} className="field-input" />
+            <input
+              name="rpc2"
+              list="dl-rpc2"
+              defaultValue={base.rpc2 ?? ""}
+              disabled={!canEdit}
+              className="field-input"
+            />
+            <datalist id="dl-rpc2">
+              {options.rpc2.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </Field>
 
           <Field label="Gate 4 status">
             <input
               name="gate4Status"
+              list="dl-gate4"
               defaultValue={base.gate4Status ?? ""}
               disabled={!canEdit}
               className="field-input"
             />
+            <datalist id="dl-gate4">
+              {options.gate4Status.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </Field>
           <Field label="Project status">
             <input
               name="projectStatus"
+              list="dl-project-status"
               defaultValue={base.projectStatus ?? ""}
               disabled={!canEdit}
               className="field-input"
             />
+            <datalist id="dl-project-status">
+              {options.projectStatus.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </Field>
 
           <div className="md:col-span-2">

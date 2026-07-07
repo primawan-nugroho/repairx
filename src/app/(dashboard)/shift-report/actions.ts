@@ -1,11 +1,20 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { shiftReportEntries } from "@/db/schema";
-import { shiftReportEntrySchema } from "@/lib/validations";
+import { shiftEntryUpdateSchema, shiftReportEntrySchema } from "@/lib/validations";
 import { lookupOrder } from "@/lib/shift-report";
+
+async function requireEditor() {
+  const session = await auth();
+  if (!session || session.user.role === "viewer") {
+    throw new Error("Not authorized");
+  }
+  return session;
+}
 
 export async function lookupOrderAction(orderNumber: string) {
   if (!orderNumber) return null;
@@ -13,10 +22,7 @@ export async function lookupOrderAction(orderNumber: string) {
 }
 
 export async function createShiftReportEntry(formData: FormData) {
-  const session = await auth();
-  if (!session || session.user.role === "viewer") {
-    throw new Error("Not authorized");
-  }
+  const session = await requireEditor();
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = shiftReportEntrySchema.parse(raw);
@@ -29,5 +35,34 @@ export async function createShiftReportEntry(formData: FormData) {
     createdBy: Number(session.user.id),
   });
 
+  revalidatePath("/shift-report");
+}
+
+export async function updateShiftReportEntry(id: number, formData: FormData) {
+  await requireEditor();
+
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = shiftEntryUpdateSchema.parse(raw);
+
+  await db
+    .update(shiftReportEntries)
+    .set({
+      ...parsed,
+      planMhrs: parsed.planMhrs != null ? String(parsed.planMhrs) : null,
+      consumedMhrs: parsed.consumedMhrs != null ? String(parsed.consumedMhrs) : null,
+      manhours: parsed.manhours != null ? String(parsed.manhours) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(shiftReportEntries.id, id));
+
+  revalidatePath("/shift-report");
+}
+
+export async function archiveShiftReportEntry(id: number) {
+  await requireEditor();
+  await db
+    .update(shiftReportEntries)
+    .set({ archived: true, updatedAt: new Date() })
+    .where(eq(shiftReportEntries.id, id));
   revalidatePath("/shift-report");
 }
