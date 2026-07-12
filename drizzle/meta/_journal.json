@@ -22,6 +22,13 @@
       "when": 1783393797060,
       "tag": "0002_broken_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783450000000,
+      "tag": "0003_backfill_report_columns",
+      "breakpoints": true
     }
   ]
 }
