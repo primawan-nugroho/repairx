@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getDailyMenuEntries, getPreviousShift } from "@/lib/daily-menu";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
 import { PopulateButton } from "./populate-button";
+import { DailyMenuEntryForm } from "./entry-form";
 import { updateDailyMenuEntry, archiveDailyMenuEntry } from "./actions";
 
 interface PageProps {
@@ -67,6 +68,8 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
           Load
         </button>
       </form>
+
+      {canEdit && <DailyMenuEntryForm menuDate={menuDate} shift={shift} />}
 
       {entries.length === 0 && canEdit && (
         <div className="bg-surface-solid flex items-center justify-between rounded-lg border border-border p-4">

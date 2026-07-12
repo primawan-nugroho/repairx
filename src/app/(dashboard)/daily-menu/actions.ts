@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { dailyMenuEntries } from "@/db/schema";
-import { shiftEntryUpdateSchema } from "@/lib/validations";
+import { dailyMenuEntrySchema, shiftEntryUpdateSchema } from "@/lib/validations";
+import { lookupOrder } from "@/lib/shift-report";
 import { populateDailyMenuFromPreviousShift } from "@/lib/daily-menu";
 
 async function requireEditor() {
@@ -16,6 +17,26 @@ async function requireEditor() {
   return session;
 }
 
+export async function lookupDailyMenuOrder(orderNumber: string) {
+  if (!orderNumber) return null;
+  return lookupOrder(orderNumber);
+}
+
+export async function createDailyMenuEntry(formData: FormData) {
+  const session = await requireEditor();
+  const parsed = dailyMenuEntrySchema.parse(Object.fromEntries(formData.entries()));
+  const order = await lookupOrder(parsed.orderNumber);
+  if (!order) throw new Error("Order not found or archived");
+
+  await db.insert(dailyMenuEntries).values({
+    ...parsed,
+    planMhrs: parsed.planMhrs != null ? String(parsed.planMhrs) : null,
+    consumedMhrs: parsed.consumedMhrs != null ? String(parsed.consumedMhrs) : null,
+    manhours: parsed.manhours != null ? String(parsed.manhours) : null,
+    createdBy: Number(session.user.id),
+  });
+  revalidatePath("/daily-menu");
+}
 export async function populateDailyMenu(menuDate: string, shift: string) {
   const session = await requireEditor();
   const count = await populateDailyMenuFromPreviousShift(menuDate, shift, Number(session.user.id));

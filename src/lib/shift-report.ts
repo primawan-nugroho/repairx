@@ -59,7 +59,7 @@ export async function lookupOrder(orderNumber: string) {
       mwcToday: orders.mwcToday,
     })
     .from(orders)
-    .where(eq(orders.orderNumber, orderNumber))
+    .where(and(eq(orders.orderNumber, orderNumber), eq(orders.archived, false)))
     .limit(1);
   return order ?? null;
 }

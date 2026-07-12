@@ -49,8 +49,7 @@ export const orderSchema = z.object({
 
 export type OrderInput = z.infer<typeof orderSchema>;
 
-export const shiftReportEntrySchema = z.object({
-  reportDate: z.string().min(1, "Date is required"),
+const shiftLikeEntryFields = {
   shift: z.enum(["AM", "PM", "Overtime"]),
   orderNumber: z.string().min(1, "Order number is required").max(32),
   workCenter: z.string().max(16).nullable().optional(),
@@ -64,6 +63,16 @@ export const shiftReportEntrySchema = z.object({
   stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
   completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
+};
+
+export const shiftReportEntrySchema = z.object({
+  reportDate: z.string().min(1, "Date is required"),
+  ...shiftLikeEntryFields,
+});
+
+export const dailyMenuEntrySchema = z.object({
+  menuDate: z.string().min(1, "Date is required"),
+  ...shiftLikeEntryFields,
 });
 
 export type ShiftReportEntryInput = z.infer<typeof shiftReportEntrySchema>;
