@@ -20,7 +20,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
 
   const entries = await getShiftReportEntries(reportDate, shift);
   const summary = summarize(entries);
-  const canEdit = session?.user.role !== "viewer";
+  const canEdit = Boolean(session && session.user.role !== "viewer");
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,7 +65,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <ShiftEntryForm reportDate={reportDate} shift={shift} />
+      {canEdit && <ShiftEntryForm reportDate={reportDate} shift={shift} />}
 
       <div className="bg-surface-solid flex gap-6 rounded-lg border border-border p-4">
         <Stat label="Entries" value={summary.totalEntries} />

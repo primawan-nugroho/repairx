@@ -20,7 +20,7 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
   const shift = params.shift || "AM";
 
   const entries = await getDailyMenuEntries(menuDate, shift);
-  const canEdit = session?.user.role !== "viewer";
+  const canEdit = Boolean(session && session.user.role !== "viewer");
   const prev = getPreviousShift(menuDate, shift);
 
   return (

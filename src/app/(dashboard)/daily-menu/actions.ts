@@ -1,10 +1,10 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { dailyMenuEntries } from "@/db/schema";
+import { dailyMenuEntries, orders } from "@/db/schema";
 import { dailyMenuEntrySchema, shiftEntryUpdateSchema } from "@/lib/validations";
 import { lookupOrder } from "@/lib/shift-report";
 import { populateDailyMenuFromPreviousShift } from "@/lib/daily-menu";
@@ -25,7 +25,11 @@ export async function lookupDailyMenuOrder(orderNumber: string) {
 export async function createDailyMenuEntry(formData: FormData) {
   const session = await requireEditor();
   const parsed = dailyMenuEntrySchema.parse(Object.fromEntries(formData.entries()));
-  const order = await lookupOrder(parsed.orderNumber);
+  const [order] = await db
+    .select({ orderNumber: orders.orderNumber })
+    .from(orders)
+    .where(and(eq(orders.orderNumber, parsed.orderNumber), eq(orders.archived, false)))
+    .limit(1);
   if (!order) throw new Error("Order not found or archived");
 
   await db.insert(dailyMenuEntries).values({

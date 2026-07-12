@@ -49,7 +49,8 @@ export const orderSchema = z.object({
 
 export type OrderInput = z.infer<typeof orderSchema>;
 
-const shiftLikeEntryFields = {
+export const shiftReportEntrySchema = z.object({
+  reportDate: z.string().min(1, "Date is required"),
   shift: z.enum(["AM", "PM", "Overtime"]),
   orderNumber: z.string().min(1, "Order number is required").max(32),
   workCenter: z.string().max(16).nullable().optional(),
@@ -63,16 +64,23 @@ const shiftLikeEntryFields = {
   stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
   completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
-};
-
-export const shiftReportEntrySchema = z.object({
-  reportDate: z.string().min(1, "Date is required"),
-  ...shiftLikeEntryFields,
 });
 
 export const dailyMenuEntrySchema = z.object({
   menuDate: z.string().min(1, "Date is required"),
-  ...shiftLikeEntryFields,
+  shift: z.enum(["AM", "PM", "Overtime"]),
+  orderNumber: z.string().min(1, "Order number is required").max(32),
+  workCenter: z.string().max(16).nullable().optional(),
+  uic: z.string().max(32).nullable().optional(),
+  ops: z.string().max(32).nullable().optional(),
+  activity: z.string().max(2000).nullable().optional(),
+  planMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
+  manhours: optionalNumber(z.coerce.number().nonnegative()),
+  progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
+  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
+  completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
+  remark: z.string().max(2000).nullable().optional(),
 });
 
 export type ShiftReportEntryInput = z.infer<typeof shiftReportEntrySchema>;

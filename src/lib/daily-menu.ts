@@ -56,7 +56,7 @@ export async function populateDailyMenuFromPreviousShift(
   const existing = await db
     .select({ id: dailyMenuEntries.id })
     .from(dailyMenuEntries)
-    .where(and(eq(dailyMenuEntries.menuDate, menuDate), eq(dailyMenuEntries.shift, shift as Shift)))
+    .where(and(eq(dailyMenuEntries.menuDate, menuDate), eq(dailyMenuEntries.shift, shift as Shift), eq(dailyMenuEntries.archived, false)))
     .limit(1);
   if (existing.length > 0) return 0;
 
