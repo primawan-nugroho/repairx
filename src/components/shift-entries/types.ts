@@ -10,11 +10,11 @@ export interface EditableShiftEntry {
   ops: string | null;
   activity: string | null;
   planMhrs: string | null;
-  consumedMhrs: string | null;
-  manhours: string | null;
   progressPct: number | null;
-  stampPct: number | null;
+  stamp: boolean;
   completenessStatus: string | null;
   remark: string | null;
   orderDescription?: string | null;
+  orderSerialNumber?: string | null;
+  orderEngineType?: string | null;
 }

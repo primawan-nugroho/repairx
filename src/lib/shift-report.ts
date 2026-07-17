@@ -2,13 +2,19 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, shiftReportEntries, type ShiftReportEntry } from "@/db/schema";
 
-export type ShiftReportRow = ShiftReportEntry & { orderDescription: string | null };
+export type ShiftReportRow = ShiftReportEntry & {
+  orderDescription: string | null;
+  orderSerialNumber: string | null;
+  orderEngineType: string | null;
+};
 
 export async function getShiftReportEntries(reportDate: string, shift: string): Promise<ShiftReportRow[]> {
   const rows = await db
     .select({
       entry: shiftReportEntries,
       orderDescription: orders.description,
+      orderSerialNumber: orders.serialNumber,
+      orderEngineType: orders.engineType,
     })
     .from(shiftReportEntries)
     .leftJoin(orders, eq(orders.orderNumber, shiftReportEntries.orderNumber))
@@ -21,7 +27,12 @@ export async function getShiftReportEntries(reportDate: string, shift: string): 
     )
     .orderBy(asc(shiftReportEntries.uic), asc(shiftReportEntries.workCenter));
 
-  return rows.map((r) => ({ ...r.entry, orderDescription: r.orderDescription }));
+  return rows.map((r) => ({
+    ...r.entry,
+    orderDescription: r.orderDescription,
+    orderSerialNumber: r.orderSerialNumber,
+    orderEngineType: r.orderEngineType,
+  }));
 }
 
 /** Groups shift-like entries by UIC (unit in charge) rather than work center, since
@@ -37,15 +48,14 @@ export function groupByUic<T extends { uic: string | null }>(entries: T[]): Arra
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function summarize(entries: Array<{ manhours: string | null; completenessStatus: string | null }>) {
-  const totalManhours = entries.reduce((sum, e) => sum + Number(e.manhours ?? 0), 0);
-  const closedCount = entries.filter(
-    (e) => e.completenessStatus?.toLowerCase() === "closed" || e.completenessStatus === "Final confirm",
-  ).length;
+export function summarize(entries: Array<{ completenessStatus: string | null }>) {
+  const closedCount = entries.filter((e) => {
+    const s = e.completenessStatus?.toLowerCase();
+    return s === "closed" || s === "final confirm";
+  }).length;
   return {
     totalEntries: entries.length,
     closedCount,
-    totalManhours,
   };
 }
 

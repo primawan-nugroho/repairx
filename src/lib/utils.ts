@@ -2,19 +2,35 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(" ");
 }
 
+/** Numeric DD-MM-YYYY, dash-separated — the "date-month-year" format requested for
+ * every displayed date in the app (previously day + abbreviated month name). */
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "-";
   const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString("en-GB", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     timeZone: "Asia/Jakarta",
-  });
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("day")}-${get("month")}-${get("year")}`;
 }
 
 const STATUS_COLOR_MAP: Record<string, string> = {
+  // Canonical order statuses (see lib/order-status.ts)
+  READY: "status-closed",
+  "PARTIALLY READY": "status-progress",
+  "PENDING RAW MATERIAL": "status-waiting",
+  "PENDING BDP": "status-waiting",
+  "PENDING DECISION": "status-waiting",
+  "PENDING TOOLING": "status-waiting",
+  COMPLETED: "status-closed",
+  CANCELLED: "status-urgent",
+  // Canonical shift-entry statuses
+  "IN PROGRESS": "status-progress",
+  // Legacy values retained so historical rows still colour correctly
   OPEN: "status-open",
   PROGRESS: "status-progress",
   URGENT: "status-urgent",
@@ -30,6 +46,17 @@ export function statusColorKey(status: string | null | undefined): string {
   const upper = status.toUpperCase().trim();
   if (upper.startsWith("W/F")) return "status-waiting";
   return STATUS_COLOR_MAP[upper] ?? "status-open";
+}
+
+/** Conditional-formatting bands for a 0-100 progress value, reusing the same
+ * semantic status hues: barely started reads as urgent (red), mid-progress as
+ * waiting (amber), nearly done as progress (blue), complete as closed (green). */
+export function progressColorKey(pct: number | null | undefined): string {
+  const value = pct ?? 0;
+  if (value >= 100) return "status-closed";
+  if (value >= 76) return "status-progress";
+  if (value >= 26) return "status-waiting";
+  return "status-urgent";
 }
 
 export function tierColorKey(tier: number | null | undefined): string {

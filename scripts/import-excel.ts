@@ -154,10 +154,8 @@ async function importShiftReport() {
       ops: toNullableString(row[10]),
       activity: toNullableString(row[11]),
       planMhrs: toNullableNumber(row[8])?.toString() ?? null,
-      consumedMhrs: toNullableNumber(row[9])?.toString() ?? null,
-      manhours: toNullableNumber(row[16])?.toString() ?? null,
       progressPct: toNullableNumber(row[13]),
-      stampPct: toNullableNumber(row[14]),
+      stamp: (toNullableNumber(row[14]) ?? 0) > 0,
       completenessStatus: toNullableString(row[17]),
       remark: toNullableString(row[18]),
     });

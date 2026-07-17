@@ -30,8 +30,7 @@ export async function createShiftReportEntry(formData: FormData) {
   await db.insert(shiftReportEntries).values({
     ...parsed,
     planMhrs: parsed.planMhrs != null ? String(parsed.planMhrs) : null,
-    consumedMhrs: parsed.consumedMhrs != null ? String(parsed.consumedMhrs) : null,
-    manhours: parsed.manhours != null ? String(parsed.manhours) : null,
+    stamp: parsed.stamp ?? false,
     createdBy: Number(session.user.id),
   });
 
@@ -49,8 +48,7 @@ export async function updateShiftReportEntry(id: number, formData: FormData) {
     .set({
       ...parsed,
       planMhrs: parsed.planMhrs != null ? String(parsed.planMhrs) : null,
-      consumedMhrs: parsed.consumedMhrs != null ? String(parsed.consumedMhrs) : null,
-      manhours: parsed.manhours != null ? String(parsed.manhours) : null,
+      stamp: parsed.stamp ?? false,
       updatedAt: new Date(),
     })
     .where(eq(shiftReportEntries.id, id));

@@ -61,12 +61,15 @@ export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shif
       <Field label="Ops"><input name="ops" className="field-input data-mono" /></Field>
       <div className="md:col-span-4 text-sm text-text-secondary">{message ?? (lookup ? `${lookup.description ?? "-"} · ${lookup.serialNumber ?? "-"} · ${lookup.engineType ?? "-"}` : "Select an order from the Orders table.")}</div>
       <div className="md:col-span-4"><Field label="Activity"><textarea name="activity" rows={2} className="field-input" /></Field></div>
-      <Field label="Plan mhrs"><input name="planMhrs" type="number" step="0.5" className="field-input data-mono" /></Field>
-      <Field label="Consumed mhrs"><input name="consumedMhrs" type="number" step="0.5" className="field-input data-mono" /></Field>
-      <Field label="Manhours"><input name="manhours" type="number" step="0.5" className="field-input data-mono" /></Field>
+      <Field label="Manhours"><input name="planMhrs" type="number" step="0.5" className="field-input data-mono" /></Field>
       <Field label="Progress %"><input name="progressPct" type="number" min={0} max={100} className="field-input data-mono" /></Field>
-      <Field label="Stamp %"><input name="stampPct" type="number" min={0} max={100} className="field-input data-mono" /></Field>
-      <Field label="Status"><select name="completenessStatus" defaultValue="Open" className="field-input"><option>Open</option><option>Inprogress</option><option>closed</option><option>Final confirm</option></select></Field>
+      <Field label="Stamp">
+        <label className="flex h-[38px] items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm">
+          <input name="stamp" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
+          <span className="text-text-secondary">Stamped</span>
+        </label>
+      </Field>
+      <Field label="Barcode status"><select name="completenessStatus" defaultValue="Open" className="field-input"><option value="Open">Open</option><option value="In progress">In progress</option><option value="Closed">Closed</option></select></Field>
       <Field label="Remark"><input name="remark" className="field-input" /></Field>
       <div className="md:col-span-4 flex justify-end"><button type="submit" disabled={pending || !lookup} className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60">{pending ? "Saving…" : "Add entry"}</button></div>
       <style jsx>{`.field-input { width: 100%; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; font-size: 14px; color: var(--text-primary); } .field-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-bg); }`}</style>

@@ -70,7 +70,6 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
       <div className="bg-surface-solid flex gap-6 rounded-lg border border-border p-4">
         <Stat label="Entries" value={summary.totalEntries} />
         <Stat label="Closed" value={summary.closedCount} />
-        <Stat label="Manhours" value={summary.totalManhours} />
       </div>
 
       <GroupedEntriesView

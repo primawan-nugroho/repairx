@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SidebarToggleButton } from "@/components/sidebar-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AvatarMenu } from "@/components/avatar-menu";
+import { formatDate } from "@/lib/utils";
 
 export default async function DashboardLayout({
   children,
@@ -24,14 +25,7 @@ export default async function DashboardLayout({
         <header className="vibrancy flex h-[52px] items-center justify-between border-b border-border px-4">
           <div className="flex items-center gap-2">
             <SidebarToggleButton />
-            <span className="data-mono text-sm text-text-secondary">
-              {new Date().toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                timeZone: "Asia/Jakarta",
-              })}
-            </span>
+            <span className="data-mono text-sm text-text-secondary">{formatDate(new Date())}</span>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />

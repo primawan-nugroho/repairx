@@ -12,6 +12,8 @@ interface EntryEditDialogProps {
   onClose: () => void;
 }
 
+const CANONICAL_STATUSES = ["Open", "In progress", "Closed"] as const;
+
 export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: EntryEditDialogProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,10 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
   const [workCenter, setWorkCenter] = useState(entry.workCenter ?? "");
 
   const derivedUic = deriveUic(workCenter);
+  const currentStatus = entry.completenessStatus ?? "Open";
+  const isLegacyStatus =
+    !!entry.completenessStatus &&
+    !(CANONICAL_STATUSES as readonly string[]).includes(entry.completenessStatus);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -58,6 +64,11 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
             {entry.orderDescription && (
               <p className="text-xs text-text-secondary">{entry.orderDescription}</p>
             )}
+            {(entry.orderSerialNumber || entry.orderEngineType) && (
+              <p className="data-mono mt-0.5 text-xs text-text-secondary">
+                {entry.orderSerialNumber ?? "-"} · {entry.orderEngineType ?? "-"}
+              </p>
+            )}
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface">
             ✕
@@ -82,12 +93,16 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
           <Field label="Ops">
             <input name="ops" defaultValue={entry.ops ?? ""} disabled={!canEdit} className="field-input data-mono" />
           </Field>
-          <Field label="Status">
-            <select name="completenessStatus" defaultValue={entry.completenessStatus ?? "Open"} disabled={!canEdit} className="field-input">
-              <option value="Open">Open</option>
-              <option value="Inprogress">Inprogress</option>
-              <option value="closed">closed</option>
-              <option value="Final confirm">Final confirm</option>
+          <Field label="Barcode status">
+            <select name="completenessStatus" defaultValue={currentStatus} disabled={!canEdit} className="field-input">
+              {isLegacyStatus && (
+                <option value={currentStatus}>{currentStatus} (legacy)</option>
+              )}
+              {CANONICAL_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
           </Field>
 
@@ -97,27 +112,28 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
             </Field>
           </div>
 
-          <Field label="Plan mhrs">
-            <input name="planMhrs" type="number" step="0.5" defaultValue={entry.planMhrs ?? ""} disabled={!canEdit} className="field-input data-mono" />
-          </Field>
-          <Field label="Consumed mhrs">
-            <input name="consumedMhrs" type="number" step="0.5" defaultValue={entry.consumedMhrs ?? ""} disabled={!canEdit} className="field-input data-mono" />
-          </Field>
           <Field label="Manhours">
-            <input name="manhours" type="number" step="0.5" defaultValue={entry.manhours ?? ""} disabled={!canEdit} className="field-input data-mono" />
+            <input name="planMhrs" type="number" step="0.5" defaultValue={entry.planMhrs ?? ""} disabled={!canEdit} className="field-input data-mono" />
           </Field>
           <Field label="Progress %">
             <input name="progressPct" type="number" min={0} max={100} defaultValue={entry.progressPct ?? ""} disabled={!canEdit} className="field-input data-mono" />
           </Field>
 
-          <Field label="Stamp %">
-            <input name="stampPct" type="number" min={0} max={100} defaultValue={entry.stampPct ?? ""} disabled={!canEdit} className="field-input data-mono" />
+          <Field label="Stamp">
+            <label className="flex h-[38px] items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm">
+              <input
+                name="stamp"
+                type="checkbox"
+                defaultChecked={entry.stamp}
+                disabled={!canEdit}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              <span className="text-text-secondary">Stamped</span>
+            </label>
           </Field>
-          <div>
-            <Field label="Remark">
-              <input name="remark" defaultValue={entry.remark ?? ""} disabled={!canEdit} className="field-input" />
-            </Field>
-          </div>
+          <Field label="Remark">
+            <input name="remark" defaultValue={entry.remark ?? ""} disabled={!canEdit} className="field-input" />
+          </Field>
 
           {error && <p className="md:col-span-2 text-sm text-status-urgent">{error}</p>}
 

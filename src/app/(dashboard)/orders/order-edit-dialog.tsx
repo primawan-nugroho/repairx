@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
 import { deriveUic } from "@/lib/wc-uic-map";
+import { ORDER_STATUSES, isCanonicalOrderStatus } from "@/lib/order-status";
 import { archiveOrder, createOrder, upsertOrder } from "./actions";
 
 interface OrderEditDialogProps {
@@ -169,12 +170,22 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           </Field>
 
           <Field label="Status">
-            <input
+            <select
               name="status"
               defaultValue={base.status ?? ""}
               disabled={!canEdit}
               className="field-input"
-            />
+            >
+              <option value="">— unset —</option>
+              {base.status && !isCanonicalOrderStatus(base.status) && (
+                <option value={base.status}>{base.status} (legacy)</option>
+              )}
+              {ORDER_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Plan finish date">
             <input

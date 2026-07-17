@@ -49,6 +49,14 @@ export const orderSchema = z.object({
 
 export type OrderInput = z.infer<typeof orderSchema>;
 
+// HTML checkboxes submit `"on"` when checked and are simply absent from FormData
+// when unchecked — so a bare z.boolean() would 500 on every "off" checkbox. This
+// preprocess normalises both server-side (formData string) and JS-side (real bool).
+const checkbox = z.preprocess(
+  (v) => v === "on" || v === "true" || v === true || v === 1 || v === "1",
+  z.boolean(),
+);
+
 export const shiftReportEntrySchema = z.object({
   reportDate: z.string().min(1, "Date is required"),
   shift: z.enum(["AM", "PM", "Overtime"]),
@@ -58,11 +66,9 @@ export const shiftReportEntrySchema = z.object({
   ops: z.string().max(32).nullable().optional(),
   activity: z.string().max(2000).nullable().optional(),
   planMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  manhours: optionalNumber(z.coerce.number().nonnegative()),
   progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
+  stamp: checkbox.optional().default(false),
+  completenessStatus: z.string().max(32).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
 });
 
@@ -75,11 +81,9 @@ export const dailyMenuEntrySchema = z.object({
   ops: z.string().max(32).nullable().optional(),
   activity: z.string().max(2000).nullable().optional(),
   planMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  manhours: optionalNumber(z.coerce.number().nonnegative()),
   progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
+  stamp: checkbox.optional().default(false),
+  completenessStatus: z.string().max(32).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
 });
 
@@ -94,11 +98,9 @@ export const shiftEntryUpdateSchema = z.object({
   ops: z.string().max(32).nullable().optional(),
   activity: z.string().max(2000).nullable().optional(),
   planMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  consumedMhrs: optionalNumber(z.coerce.number().nonnegative()),
-  manhours: optionalNumber(z.coerce.number().nonnegative()),
   progressPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  stampPct: optionalNumber(z.coerce.number().int().min(0).max(100)),
-  completenessStatus: z.enum(["Open", "Inprogress", "closed", "Final confirm"]).nullable().optional(),
+  stamp: checkbox.optional().default(false),
+  completenessStatus: z.string().max(32).nullable().optional(),
   remark: z.string().max(2000).nullable().optional(),
 });
 

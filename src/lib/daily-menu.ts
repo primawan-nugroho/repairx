@@ -2,7 +2,11 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyMenuEntries, orders, shiftReportEntries, type DailyMenuEntry } from "@/db/schema";
 
-export type DailyMenuRow = DailyMenuEntry & { orderDescription: string | null };
+export type DailyMenuRow = DailyMenuEntry & {
+  orderDescription: string | null;
+  orderSerialNumber: string | null;
+  orderEngineType: string | null;
+};
 
 const SHIFT_ORDER = ["AM", "PM", "Overtime"] as const;
 type Shift = (typeof SHIFT_ORDER)[number];
@@ -29,6 +33,8 @@ export async function getDailyMenuEntries(menuDate: string, shift: string): Prom
     .select({
       entry: dailyMenuEntries,
       orderDescription: orders.description,
+      orderSerialNumber: orders.serialNumber,
+      orderEngineType: orders.engineType,
     })
     .from(dailyMenuEntries)
     .leftJoin(orders, eq(orders.orderNumber, dailyMenuEntries.orderNumber))
@@ -41,7 +47,12 @@ export async function getDailyMenuEntries(menuDate: string, shift: string): Prom
     )
     .orderBy(asc(dailyMenuEntries.uic), asc(dailyMenuEntries.workCenter));
 
-  return rows.map((r) => ({ ...r.entry, orderDescription: r.orderDescription }));
+  return rows.map((r) => ({
+    ...r.entry,
+    orderDescription: r.orderDescription,
+    orderSerialNumber: r.orderSerialNumber,
+    orderEngineType: r.orderEngineType,
+  }));
 }
 
 /** Copies every entry (closed included) from the previous shift's end-shift report
@@ -84,10 +95,8 @@ export async function populateDailyMenuFromPreviousShift(
       ops: e.ops,
       activity: e.activity,
       planMhrs: e.planMhrs,
-      consumedMhrs: e.consumedMhrs,
-      manhours: e.manhours,
       progressPct: e.progressPct,
-      stampPct: e.stampPct,
+      stamp: e.stamp,
       completenessStatus: e.completenessStatus,
       remark: e.remark,
       createdBy,

@@ -101,28 +101,24 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
         </Field>
       </div>
 
-      <Field label="Plan mhrs">
-        <input name="planMhrs" type="number" step="0.5" className="field-input data-mono" />
-      </Field>
-      <Field label="Consumed mhrs">
-        <input name="consumedMhrs" type="number" step="0.5" className="field-input data-mono" />
-      </Field>
       <Field label="Manhours">
-        <input name="manhours" type="number" step="0.5" className="field-input data-mono" />
+        <input name="planMhrs" type="number" step="0.5" className="field-input data-mono" />
       </Field>
       <Field label="Progress %">
         <input name="progressPct" type="number" min={0} max={100} className="field-input data-mono" />
       </Field>
 
-      <Field label="Stamp %">
-        <input name="stampPct" type="number" min={0} max={100} className="field-input data-mono" />
+      <Field label="Stamp">
+        <label className="flex h-[38px] items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm">
+          <input name="stamp" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
+          <span className="text-text-secondary">Stamped</span>
+        </label>
       </Field>
-      <Field label="Status">
+      <Field label="Barcode status">
         <select name="completenessStatus" defaultValue="Open" className="field-input">
           <option value="Open">Open</option>
-          <option value="Inprogress">Inprogress</option>
-          <option value="closed">closed</option>
-          <option value="Final confirm">Final confirm</option>
+          <option value="In progress">In progress</option>
+          <option value="Closed">Closed</option>
         </select>
       </Field>
       <div className="md:col-span-2">
