@@ -9,6 +9,7 @@ import {
   timestamp,
   boolean,
   pgEnum,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", [
@@ -118,6 +119,22 @@ export const repairPlannerEntries = pgTable("repair_planner_entries", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// AI-generated shift-handover briefing shown on the summary Dashboard — cached per
+// date/shift (not regenerated on every page load) so the free-tier Groq quota is
+// shared across the whole team rather than spent per pageview. Regeneration
+// overwrites the existing row for that date/shift via the unique index below.
+export const aiInsights = pgTable(
+  "ai_insights",
+  {
+    id: serial("id").primaryKey(),
+    insightDate: date("insight_date").notNull(),
+    shift: shiftEnum("shift").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("ai_insights_date_shift_idx").on(table.insightDate, table.shift)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Order = typeof orders.$inferSelect;
@@ -128,3 +145,5 @@ export type RepairPlannerEntry = typeof repairPlannerEntries.$inferSelect;
 export type NewRepairPlannerEntry = typeof repairPlannerEntries.$inferInsert;
 export type DailyMenuEntry = typeof dailyMenuEntries.$inferSelect;
 export type NewDailyMenuEntry = typeof dailyMenuEntries.$inferInsert;
+export type AiInsight = typeof aiInsights.$inferSelect;
+export type NewAiInsight = typeof aiInsights.$inferInsert;

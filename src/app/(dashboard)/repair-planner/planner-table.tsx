@@ -250,7 +250,7 @@ export function PlannerTable({
 
   return (
     <>
-      <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((headerGroup) => (

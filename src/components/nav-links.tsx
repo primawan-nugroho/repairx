@@ -4,10 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-// Ordered to match the daily production flow: Orders (register) -> Daily menu
-// (plan the shift) -> Shift report (record what happened). Repair planner and
-// Masters are reference/admin, set off by a separator.
+// Ordered to match the daily production flow: Dashboard (overview) -> Orders
+// (register) -> Daily menu (plan the shift) -> Shift report (record what
+// happened). Repair planner and Masters are reference/admin, set off by a separator.
 const NAV_ITEMS = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <>
+        <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.3" strokeWidth={1.8} />
+        <rect x="13" y="3.5" width="7.5" height="4.5" rx="1.3" strokeWidth={1.8} />
+        <rect x="13" y="10" width="7.5" height="10.5" rx="1.3" strokeWidth={1.8} />
+        <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.3" strokeWidth={1.8} />
+      </>
+    ),
+  },
   {
     href: "/orders",
     label: "Orders",
