@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
 import { deriveUic } from "@/lib/wc-uic-map";
 import { ORDER_STATUSES, isCanonicalOrderStatus } from "@/lib/order-status";
-import { archiveOrder, createOrder, upsertOrder } from "./actions";
+import { ENGINE_TYPES, isEngineType } from "@/lib/engine-types";
+import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
+import { useToast } from "@/components/toast";
+import { archiveOrder, createOrder, lookupEngineTypeBySerial, upsertOrder } from "./actions";
 
 interface OrderEditDialogProps {
   order?: Order;
@@ -19,13 +22,27 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
   const isNew = !order;
   const base = order ?? BLANK_ORDER;
   const router = useRouter();
+  const { showToast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState(base.orderNumber ?? "");
   const [mwcToday, setMwcToday] = useState(base.mwcToday ?? "");
+  const [serialNumber, setSerialNumber] = useState(base.serialNumber ?? "");
+  const [engineType, setEngineType] = useState(isEngineType(base.engineType) ? base.engineType : "");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const derivedUic = deriveUic(mwcToday);
+
+  useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
+
+  async function handleSerialBlur(value: string) {
+    if (!value.trim() || engineType) return;
+    const found = await lookupEngineTypeBySerial(value);
+    if (found && isEngineType(found)) {
+      setEngineType(found);
+    }
+  }
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -35,8 +52,10 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
       try {
         if (isNew) {
           await createOrder(formData);
+          showToast("Order created");
         } else {
           await upsertOrder(formData);
+          showToast("Order saved");
         }
         router.refresh();
         onClose();
@@ -52,6 +71,7 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
     startTransition(async () => {
       try {
         await archiveOrder(order.orderNumber);
+        showToast("Order deleted");
         router.refresh();
         onClose();
       } catch (e) {
@@ -82,10 +102,12 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
         </div>
 
         <form
+          ref={formRef}
           action={handleSubmit}
           className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
         >
           {!isNew && <input type="hidden" name="originalOrderNumber" value={order!.orderNumber} />}
+          <input type="hidden" name="engineType" value={engineType} />
 
           <div className="md:col-span-2">
             <Field label="Order number">
@@ -94,6 +116,7 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
                 onChange={(e) => setOrderNumber(e.target.value)}
                 required
                 disabled={!canEdit}
+                autoFocus
                 className="field-input data-mono"
               />
             </Field>
@@ -132,18 +155,27 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           <Field label="Serial number">
             <input
               name="serialNumber"
-              defaultValue={base.serialNumber ?? ""}
+              value={serialNumber}
+              onChange={(e) => setSerialNumber(e.target.value)}
+              onBlur={(e) => handleSerialBlur(e.target.value)}
               disabled={!canEdit}
               className="field-input data-mono"
             />
           </Field>
           <Field label="Engine type">
-            <input
-              name="engineType"
-              defaultValue={base.engineType ?? ""}
+            <select
+              value={engineType}
+              onChange={(e) => setEngineType(e.target.value)}
               disabled={!canEdit}
               className="field-input"
-            />
+            >
+              <option value="">— unset —</option>
+              {ENGINE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </Field>
 
           <div className="md:col-span-2">
@@ -172,14 +204,11 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           <Field label="Status">
             <select
               name="status"
-              defaultValue={base.status ?? ""}
+              defaultValue={isCanonicalOrderStatus(base.status) ? base.status : ""}
               disabled={!canEdit}
               className="field-input"
             >
               <option value="">— unset —</option>
-              {base.status && !isCanonicalOrderStatus(base.status) && (
-                <option value={base.status}>{base.status} (legacy)</option>
-              )}
               {ORDER_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}

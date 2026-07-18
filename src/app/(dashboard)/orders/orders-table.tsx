@@ -202,15 +202,15 @@ export function OrdersTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
-          <thead className="bg-surface">
+          <thead className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-medium text-text-secondary"
+                    className="whitespace-nowrap border-b border-border bg-surface px-3 py-2.5 text-left text-xs font-medium text-text-secondary"
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>

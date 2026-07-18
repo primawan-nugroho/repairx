@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDailyMenuEntries, getPreviousShift } from "@/lib/daily-menu";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
+import { currentShift } from "@/lib/shift";
 import { PopulateButton } from "./populate-button";
 import { DailyMenuEntryForm } from "./entry-form";
 import { updateDailyMenuEntry, archiveDailyMenuEntry } from "./actions";
@@ -17,7 +18,7 @@ function todayIso() {
 export default async function DailyMenuPage({ searchParams }: PageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const menuDate = params.date || todayIso();
-  const shift = params.shift || "AM";
+  const shift = params.shift || currentShift();
 
   const entries = await getDailyMenuEntries(menuDate, shift);
   const canEdit = Boolean(session && session.user.role !== "viewer");

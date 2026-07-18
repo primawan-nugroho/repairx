@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getShiftReportEntries, summarize } from "@/lib/shift-report";
 import { ShiftEntryForm } from "./entry-form";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
+import { currentShift } from "@/lib/shift";
 import { updateShiftReportEntry, archiveShiftReportEntry } from "./actions";
 
 interface PageProps {
@@ -16,7 +17,7 @@ function todayIso() {
 export default async function ShiftReportPage({ searchParams }: PageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const reportDate = params.date || todayIso();
-  const shift = params.shift || "AM";
+  const shift = params.shift || currentShift();
 
   const entries = await getShiftReportEntries(reportDate, shift);
   const summary = summarize(entries);
@@ -75,6 +76,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
       <GroupedEntriesView
         entries={entries}
         canEdit={canEdit}
+        showManhours={false}
         onSave={updateShiftReportEntry}
         onDelete={archiveShiftReportEntry}
         emptyMessage="No entries logged for this date/shift yet."

@@ -1,36 +1,46 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { deriveUic } from "@/lib/wc-uic-map";
+import { BARCODE_STATUSES, isBarcodeStatus } from "@/lib/shift-status";
+import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
+import { useToast } from "@/components/toast";
 import type { EditableShiftEntry } from "./types";
 
 interface EntryEditDialogProps {
   entry: EditableShiftEntry;
   canEdit: boolean;
+  showManhours: boolean;
   onSave: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
 }
 
-const CANONICAL_STATUSES = ["Open", "In progress", "Closed"] as const;
-
-export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: EntryEditDialogProps) {
+export function EntryEditDialog({
+  entry,
+  canEdit,
+  showManhours,
+  onSave,
+  onDelete,
+  onClose,
+}: EntryEditDialogProps) {
+  const { showToast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [workCenter, setWorkCenter] = useState(entry.workCenter ?? "");
 
   const derivedUic = deriveUic(workCenter);
-  const currentStatus = entry.completenessStatus ?? "Open";
-  const isLegacyStatus =
-    !!entry.completenessStatus &&
-    !(CANONICAL_STATUSES as readonly string[]).includes(entry.completenessStatus);
+
+  useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
       try {
         await onSave(entry.id, formData);
+        showToast("Entry saved");
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
@@ -43,6 +53,7 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
     startTransition(async () => {
       try {
         await onDelete(entry.id);
+        showToast("Entry deleted");
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
@@ -75,13 +86,14 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
           </button>
         </div>
 
-        <form action={handleSubmit} className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2">
+        <form ref={formRef} action={handleSubmit} className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2">
           <Field label="Work center">
             <input
               name="workCenter"
               value={workCenter}
               onChange={(e) => setWorkCenter(e.target.value)}
               disabled={!canEdit}
+              autoFocus
               className="field-input"
             />
           </Field>
@@ -94,11 +106,14 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
             <input name="ops" defaultValue={entry.ops ?? ""} disabled={!canEdit} className="field-input data-mono" />
           </Field>
           <Field label="Barcode status">
-            <select name="completenessStatus" defaultValue={currentStatus} disabled={!canEdit} className="field-input">
-              {isLegacyStatus && (
-                <option value={currentStatus}>{currentStatus} (legacy)</option>
-              )}
-              {CANONICAL_STATUSES.map((s) => (
+            <select
+              name="completenessStatus"
+              defaultValue={isBarcodeStatus(entry.completenessStatus) ? entry.completenessStatus : ""}
+              disabled={!canEdit}
+              className="field-input"
+            >
+              <option value="">— unset —</option>
+              {BARCODE_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -112,9 +127,11 @@ export function EntryEditDialog({ entry, canEdit, onSave, onDelete, onClose }: E
             </Field>
           </div>
 
-          <Field label="Manhours">
-            <input name="planMhrs" type="number" step="0.5" defaultValue={entry.planMhrs ?? ""} disabled={!canEdit} className="field-input data-mono" />
-          </Field>
+          {showManhours && (
+            <Field label="Manhours">
+              <input name="planMhrs" type="number" step="0.5" defaultValue={entry.planMhrs ?? ""} disabled={!canEdit} className="field-input data-mono" />
+            </Field>
+          )}
           <Field label="Progress %">
             <input name="progressPct" type="number" min={0} max={100} defaultValue={entry.progressPct ?? ""} disabled={!canEdit} className="field-input data-mono" />
           </Field>

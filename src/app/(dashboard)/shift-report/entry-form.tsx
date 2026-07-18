@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { createShiftReportEntry, lookupOrderAction } from "./actions";
 import { deriveUic } from "@/lib/wc-uic-map";
+import { BARCODE_STATUSES } from "@/lib/shift-status";
+import { useToast } from "@/components/toast";
 
 interface OrderLookup {
   description: string | null;
@@ -13,6 +15,7 @@ interface OrderLookup {
 }
 
 export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shift: string }) {
+  const { showToast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -39,6 +42,7 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
       action={(formData) => {
         startTransition(async () => {
           await createShiftReportEntry(formData);
+          showToast("Entry added");
           formRef.current?.reset();
           setLookup(null);
           setNotFound(false);
@@ -54,6 +58,7 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
         <input
           name="orderNumber"
           required
+          autoFocus
           onBlur={(e) => handleOrderBlur(e.target.value)}
           className="field-input data-mono"
         />
@@ -101,9 +106,6 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
         </Field>
       </div>
 
-      <Field label="Manhours">
-        <input name="planMhrs" type="number" step="0.5" className="field-input data-mono" />
-      </Field>
       <Field label="Progress %">
         <input name="progressPct" type="number" min={0} max={100} className="field-input data-mono" />
       </Field>
@@ -116,9 +118,11 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
       </Field>
       <Field label="Barcode status">
         <select name="completenessStatus" defaultValue="Open" className="field-input">
-          <option value="Open">Open</option>
-          <option value="In progress">In progress</option>
-          <option value="Closed">Closed</option>
+          {BARCODE_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </select>
       </Field>
       <div className="md:col-span-2">

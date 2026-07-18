@@ -55,10 +55,11 @@ export async function getDailyMenuEntries(menuDate: string, shift: string): Prom
   }));
 }
 
-/** Copies every entry (closed included) from the previous shift's end-shift report
- * into the daily menu for the given date/shift — production control trims what's
- * already done. No-op if the menu already has entries, so re-clicking "populate"
- * doesn't duplicate rows. */
+/** Copies unfinished entries (barcode status not Closed/Final Confirm) from the
+ * previous shift's end-shift report into the daily menu for the given date/shift —
+ * completed work doesn't need to be re-deployed, so it's left out rather than
+ * copied and then manually deleted every morning. No-op if the menu already has
+ * entries, so re-clicking "populate" doesn't duplicate rows. */
 export async function populateDailyMenuFromPreviousShift(
   menuDate: string,
   shift: string,
@@ -72,7 +73,7 @@ export async function populateDailyMenuFromPreviousShift(
   if (existing.length > 0) return 0;
 
   const prev = getPreviousShift(menuDate, shift);
-  const sourceEntries = await db
+  const allSourceEntries = await db
     .select()
     .from(shiftReportEntries)
     .where(
@@ -82,6 +83,11 @@ export async function populateDailyMenuFromPreviousShift(
         eq(shiftReportEntries.archived, false),
       ),
     );
+
+  const sourceEntries = allSourceEntries.filter((e) => {
+    const s = e.completenessStatus?.toLowerCase();
+    return s !== "closed" && s !== "final confirm";
+  });
 
   if (sourceEntries.length === 0) return 0;
 

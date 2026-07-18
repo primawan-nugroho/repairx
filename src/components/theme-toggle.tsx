@@ -17,15 +17,16 @@ export function ThemeToggle() {
     localStorage.setItem("repairx-theme", next);
   }
 
-  if (!theme) return <div className="h-8 w-16" aria-hidden />;
+  if (!theme) return <div className="h-8 w-8" aria-hidden />;
 
   return (
     <button
       onClick={toggle}
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-primary"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-sm text-text-primary"
     >
-      {theme === "dark" ? "☀︎ Light" : "☾ Dark"}
+      {theme === "dark" ? "☀︎" : "☾"}
     </button>
   );
 }

@@ -2,17 +2,24 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/toast";
 import { populateDailyMenu } from "./actions";
 
 export function PopulateButton({ menuDate, shift }: { menuDate: string; shift: string }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [pending, startTransition] = useTransition();
 
   return (
     <button
       onClick={() =>
         startTransition(async () => {
-          await populateDailyMenu(menuDate, shift);
+          const count = await populateDailyMenu(menuDate, shift);
+          showToast(
+            count > 0
+              ? `Pulled ${count} unfinished ${count === 1 ? "entry" : "entries"} from the previous shift`
+              : "Nothing to pull — previous shift had no unfinished entries",
+          );
           router.refresh();
         })
       }

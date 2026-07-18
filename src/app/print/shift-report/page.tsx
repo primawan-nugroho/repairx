@@ -9,11 +9,11 @@ interface PageProps {
 }
 
 // Same column set and order as the dashboard's End Shift Report table (see
-// GroupedEntriesView) — the export must read as a faithful printout of what's on
-// screen, not a different layout. Widths are fixed percentages (not auto-sized) so
-// every UIC's table lines up on the same grid instead of each block re-sizing to its
-// own content.
-const COLUMN_WIDTHS = [7, 18, 9, 9, 6, 21, 8, 8, 6, 8] as const;
+// GroupedEntriesView — Manhours is intentionally not tracked here, only on the
+// Daily Menu) — the export must read as a faithful printout of what's on screen, not
+// a different layout. Widths are fixed percentages (not auto-sized) so every UIC's
+// table lines up on the same grid instead of each block re-sizing to its own content.
+const COLUMN_WIDTHS = [7, 20, 10, 10, 7, 24, 8, 6, 8] as const;
 
 function ReportColgroup() {
   return (
@@ -63,7 +63,7 @@ export default async function ShiftReportExportPage({ searchParams }: PageProps)
             <ReportColgroup />
             <thead>
               <tr className="bg-[#f0f0fa]">
-                <th colSpan={10} className="border border-[#e0e0e8] px-2 py-1.5 text-left uppercase tracking-[0.5px]">
+                <th colSpan={9} className="border border-[#e0e0e8] px-2 py-1.5 text-left uppercase tracking-[0.5px]">
                   UIC: {uic}
                 </th>
               </tr>
@@ -74,7 +74,6 @@ export default async function ShiftReportExportPage({ searchParams }: PageProps)
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Engine</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Ops</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Activity</th>
-                <th className="border border-[#e0e0e8] px-2 py-1.5">Manhours</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Progress</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Stamp</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Barcode status</th>
@@ -89,7 +88,6 @@ export default async function ShiftReportExportPage({ searchParams }: PageProps)
                   <td className="border border-[#e0e0e8] px-2 py-1.5">{e.orderEngineType ?? "-"}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.ops}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5">{e.activity}</td>
-                  <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.planMhrs ?? 0}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.progressPct ?? 0}%</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5 text-center">{e.stamp ? "✓" : "—"}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5">{e.completenessStatus}</td>

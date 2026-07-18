@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { RepairPlannerEntry } from "@/db/schema";
+import { ENGINE_TYPES, isEngineType } from "@/lib/engine-types";
+import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
+import { useToast } from "@/components/toast";
 import { archiveRepairPlannerEntry, createRepairPlannerEntry, updateRepairPlannerEntry } from "./actions";
 
 interface DropdownOptions {
@@ -26,9 +29,14 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
   const isNew = !entry;
   const base = entry ?? BLANK;
   const router = useRouter();
+  const { showToast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [engineType, setEngineType] = useState(isEngineType(base.engineType) ? base.engineType : "");
+
+  useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -36,8 +44,10 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
       try {
         if (isNew) {
           await createRepairPlannerEntry(formData);
+          showToast("Entry created");
         } else {
           await updateRepairPlannerEntry(entry!.id, formData);
+          showToast("Entry saved");
         }
         router.refresh();
         onClose();
@@ -53,6 +63,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
     startTransition(async () => {
       try {
         await archiveRepairPlannerEntry(entry.id);
+        showToast("Entry deleted");
         router.refresh();
         onClose();
       } catch (e) {
@@ -83,6 +94,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
         </div>
 
         <form
+          ref={formRef}
           action={handleSubmit}
           className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
         >
@@ -91,6 +103,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
               name="engineApu"
               defaultValue={base.engineApu ?? ""}
               disabled={!canEdit}
+              autoFocus
               className="field-input"
             >
               <option value="">-</option>
@@ -103,18 +116,20 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
           </Field>
 
           <Field label="Type">
-            <input
+            <select
               name="engineType"
-              list="dl-engine-type"
-              defaultValue={base.engineType ?? ""}
+              value={engineType}
+              onChange={(e) => setEngineType(e.target.value)}
               disabled={!canEdit}
               className="field-input data-mono"
-            />
-            <datalist id="dl-engine-type">
-              {options.engineType.map((v) => (
-                <option key={v} value={v} />
+            >
+              <option value="">— unset —</option>
+              {ENGINE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
-            </datalist>
+            </select>
           </Field>
           <Field label="Serial number">
             <input

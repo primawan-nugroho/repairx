@@ -1,10 +1,10 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { orders } from "@/db/schema";
+import { orders, repairPlannerEntries } from "@/db/schema";
 import { orderSchema } from "@/lib/validations";
 import { deriveUic } from "@/lib/wc-uic-map";
 
@@ -82,6 +82,20 @@ export async function createOrder(formData: FormData) {
   await db.insert(orders).values(values);
 
   revalidatePath("/orders");
+}
+
+/** Looks up the engine type for a serial number from the Internal Repair Planner —
+ * the two boards track the same physical parts, so a serial already registered
+ * there can save re-picking the engine type by hand in the Orders dialog. */
+export async function lookupEngineTypeBySerial(serialNumber: string) {
+  if (!serialNumber.trim()) return null;
+  const [match] = await db
+    .select({ engineType: repairPlannerEntries.engineType })
+    .from(repairPlannerEntries)
+    .where(eq(repairPlannerEntries.serialNumber, serialNumber.trim()))
+    .orderBy(desc(repairPlannerEntries.id))
+    .limit(1);
+  return match?.engineType ?? null;
 }
 
 export async function archiveOrder(orderNumber: string) {

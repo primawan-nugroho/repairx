@@ -2,6 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { deriveUic } from "@/lib/wc-uic-map";
+import { BARCODE_STATUSES } from "@/lib/shift-status";
+import { useToast } from "@/components/toast";
 import { createDailyMenuEntry, lookupDailyMenuOrder } from "./actions";
 
 interface OrderLookup {
@@ -12,6 +14,7 @@ interface OrderLookup {
 }
 
 export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shift: string }) {
+  const { showToast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
   const [orderNumber, setOrderNumber] = useState("");
@@ -39,6 +42,7 @@ export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shif
     startTransition(async () => {
       try {
         await createDailyMenuEntry(formData);
+        showToast("Entry added");
         formRef.current?.reset();
         setOrderNumber(""); setLookup(null); setWorkCenter("");
       } catch (error) {
@@ -52,7 +56,7 @@ export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shif
       <input type="hidden" name="menuDate" value={menuDate} />
       <input type="hidden" name="shift" value={shift} />
       <Field label="Order number">
-        <input name="orderNumber" value={orderNumber} required onChange={(e) => { setOrderNumber(e.target.value); setLookup(null); setMessage(e.target.value ? "Press Tab to validate this order." : null); }} onBlur={(e) => handleOrderBlur(e.target.value)} className="field-input data-mono" />
+        <input name="orderNumber" value={orderNumber} required autoFocus onChange={(e) => { setOrderNumber(e.target.value); setLookup(null); setMessage(e.target.value ? "Press Tab to validate this order." : null); }} onBlur={(e) => handleOrderBlur(e.target.value)} className="field-input data-mono" />
       </Field>
       <Field label="Work center">
         <input name="workCenter" value={workCenter} onChange={(e) => setWorkCenter(e.target.value)} className="field-input" />
@@ -69,7 +73,15 @@ export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shif
           <span className="text-text-secondary">Stamped</span>
         </label>
       </Field>
-      <Field label="Barcode status"><select name="completenessStatus" defaultValue="Open" className="field-input"><option value="Open">Open</option><option value="In progress">In progress</option><option value="Closed">Closed</option></select></Field>
+      <Field label="Barcode status">
+        <select name="completenessStatus" defaultValue="Open" className="field-input">
+          {BARCODE_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="Remark"><input name="remark" className="field-input" /></Field>
       <div className="md:col-span-4 flex justify-end"><button type="submit" disabled={pending || !lookup} className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60">{pending ? "Saving…" : "Add entry"}</button></div>
       <style jsx>{`.field-input { width: 100%; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; font-size: 14px; color: var(--text-primary); } .field-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-bg); }`}</style>
