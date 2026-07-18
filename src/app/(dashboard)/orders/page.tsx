@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getDistinctOrderValues, getOrders, ORDERS_PAGE_SIZE } from "@/lib/orders";
 import { OrdersTable } from "./orders-table";
 import { AddOrderButton } from "./add-order-button";
+import { BulkAddOrdersButton } from "./bulk-add-orders-button";
 
 interface PageProps {
   searchParams: Promise<{
@@ -79,7 +80,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold text-text-primary">Orders</h1>
         <div className="flex items-center gap-4">
           <span className="data-mono text-sm text-text-secondary">{total} total</span>
-          {canEdit && <AddOrderButton />}
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <BulkAddOrdersButton />
+              <AddOrderButton />
+            </div>
+          )}
         </div>
       </div>
 
