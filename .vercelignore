@@ -1,0 +1,8 @@
+# Stray local backup copies of the project — never deploy these.
+repairx
+repairx-1
+
+# Local-only files
+*.xlsx
+*.log
+.DS_Store
