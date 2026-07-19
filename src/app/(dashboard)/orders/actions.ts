@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { orders, repairPlannerEntries } from "@/db/schema";
 import { orderSchema } from "@/lib/validations";
-import { deriveUic } from "@/lib/wc-uic-map";
+import { deriveStatus, deriveUic } from "@/lib/wc-uic-map";
 import { isEngineType } from "@/lib/engine-types";
 import type { BulkOrderRow } from "@/lib/bulk-order-parse";
 
@@ -15,8 +15,11 @@ function parseOrderForm(formData: FormData) {
   const parsed = orderSchema.parse(raw);
 
   // UIC is always derived from the work center (see wc-uic-map.ts) — never accept a
-  // client-submitted UIC, even if the form somehow included one.
-  return { ...parsed, uicToday: deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null };
+  // client-submitted UIC, even if the form somehow included one. Status is derived
+  // the same way once the part reaches the Kitting/RPC serviceable store — see
+  // deriveStatus.
+  const uicToday = deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null;
+  return { ...parsed, uicToday, status: deriveStatus(uicToday, parsed.status) };
 }
 
 async function requireEditor() {
@@ -148,17 +151,21 @@ export async function createOrdersBulk(rows: BulkOrderRow[]) {
     return { insertedOrderNumbers: [], skippedOrderNumbers: skipped };
   }
 
-  const values = toInsert.map((r) => ({
-    orderNumber: r.orderNumber.slice(0, 32),
-    description: r.description.trim() || null,
-    serialNumber: r.serialNumber.trim().slice(0, 64) || null,
-    engineType: isEngineType(r.engineType) ? r.engineType : null,
-    dateIn: r.dateIn || null,
-    mwcToday: r.workCenter.trim().slice(0, 16) || null,
-    uicToday: deriveUic(r.workCenter) ?? null,
-    location: r.location.trim().slice(0, 128) || null,
-    remark: r.remark.trim() || null,
-  }));
+  const values = toInsert.map((r) => {
+    const uicToday = deriveUic(r.workCenter) ?? null;
+    return {
+      orderNumber: r.orderNumber.slice(0, 32),
+      description: r.description.trim() || null,
+      serialNumber: r.serialNumber.trim().slice(0, 64) || null,
+      engineType: isEngineType(r.engineType) ? r.engineType : null,
+      dateIn: r.dateIn || null,
+      mwcToday: r.workCenter.trim().slice(0, 16) || null,
+      uicToday,
+      status: deriveStatus(uicToday, null),
+      location: r.location.trim().slice(0, 128) || null,
+      remark: r.remark.trim() || null,
+    };
+  });
 
   await db.insert(orders).values(values);
   revalidatePath("/orders");

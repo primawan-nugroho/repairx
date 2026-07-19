@@ -18,8 +18,14 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <KpiTile label="Open orders" value={summary.totalOrders} href="/orders" />
+        <KpiTile
+          label="In serviceable store"
+          value={summary.inServiceableStore}
+          sub="finished, awaiting pickup"
+          href={`/orders?uic=${encodeURIComponent("Kitting/RPC")}`}
+        />
         <KpiTile label="Today's menu entries" value={summary.todayMenuCount} href="/daily-menu" />
         <KpiTile
           label={`Last shift (${summary.lastShift.shift})`}
@@ -43,7 +49,8 @@ export default async function DashboardPage() {
           <StatusBarChart rows={summary.statusBreakdown} />
         </div>
         <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Orders by UIC</h2>
+          <h2 className="text-sm font-semibold text-text-primary">Active workload by UIC</h2>
+          <p className="-mt-2 text-xs text-text-tertiary">Excludes Kitting/RPC (serviceable store)</p>
           <UicBarChart rows={summary.uicBreakdown} />
         </div>
       </div>

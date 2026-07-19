@@ -17,6 +17,7 @@ interface PageProps {
     serialNumberLike?: string;
     locationLike?: string;
     remarkLike?: string;
+    hideStore?: string;
     page?: string;
   }>;
 }
@@ -42,6 +43,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         serialNumberLike: params.serialNumberLike,
         locationLike: params.locationLike,
         remarkLike: params.remarkLike,
+        hideServiceableStore: params.hideStore === "1",
         page,
       }),
       getDistinctOrderValues("engineType"),
@@ -111,6 +113,16 @@ export default async function OrdersPage({ searchParams }: PageProps) {
             Clear column filters
           </Link>
         )}
+        <Link
+          href={buildHref({ hideStore: params.hideStore === "1" ? undefined : "1", page: undefined })}
+          className={`rounded-full border px-5 py-2 text-sm font-medium ${
+            params.hideStore === "1"
+              ? "border-accent bg-accent-bg text-accent"
+              : "border-border text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          Hide serviceable store
+        </Link>
       </form>
 
       <OrdersTable

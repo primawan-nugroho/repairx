@@ -71,3 +71,17 @@ export function wcColorKey(workCenter: string | null | undefined): string {
 
 export const ALL_MAPPED_UICS = Array.from(new Set(Object.values(WC_TO_UIC))).sort();
 export const ALL_MAPPED_WORK_CENTERS = Object.keys(WC_TO_UIC).sort();
+
+// Kitting/RPC is the one UIC that doesn't mean "active work" — it's the serviceable
+// store: the repair is finished and the part is sitting there waiting for pickup or
+// shipment. Dashboard views that measure production workload or flag stale/untouched
+// orders need to treat it as a terminal state, not a queue.
+export const TERMINAL_UIC = "Kitting/RPC";
+
+/** Status auto-derives the same way UIC does (see deriveUic) — reaching the
+ * serviceable store means the repair is done, so Status becomes "Ready" regardless
+ * of what was there before. Everywhere else, the caller's own status is kept as-is. */
+export function deriveStatus(uic: string | null, fallback: string | null | undefined): string | null {
+  if (uic === TERMINAL_UIC) return "Ready";
+  return fallback ?? null;
+}

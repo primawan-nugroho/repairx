@@ -1,6 +1,7 @@
-import { and, asc, count, desc, eq, ilike, inArray, or, SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
+import { TERMINAL_UIC } from "@/lib/wc-uic-map";
 
 export const ORDERS_PAGE_SIZE = 25;
 
@@ -15,6 +16,9 @@ export interface OrdersFilter {
   serialNumberLike?: string;
   locationLike?: string;
   remarkLike?: string;
+  /** Excludes orders already sitting in the Kitting/RPC serviceable store — those
+   * are finished, not part of the active work queue most Orders views care about. */
+  hideServiceableStore?: boolean;
   page?: number;
   sortBy?: "orderNumber" | "dateIn" | "planFinishDate" | "tier";
   sortDir?: "asc" | "desc";
@@ -38,6 +42,12 @@ export async function getOrders(filter: OrdersFilter) {
   if (filter.workCenter?.length) conditions.push(inArray(orders.mwcToday, filter.workCenter));
   if (filter.uic?.length) conditions.push(inArray(orders.uicToday, filter.uic));
   if (filter.status?.length) conditions.push(inArray(orders.status, filter.status));
+  // uicToday <> TERMINAL_UIC alone would silently exclude every order with no UIC
+  // yet (SQL NULL <> 'x' is NULL, not true) — those aren't in the store, so keep them.
+  if (filter.hideServiceableStore) {
+    const notInStore = or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC));
+    if (notInStore) conditions.push(notInStore);
+  }
   if (filter.orderNumberLike) conditions.push(ilike(orders.orderNumber, `%${filter.orderNumberLike}%`));
   if (filter.descriptionLike) conditions.push(ilike(orders.description, `%${filter.descriptionLike}%`));
   if (filter.serialNumberLike) conditions.push(ilike(orders.serialNumber, `%${filter.serialNumberLike}%`));

@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
-import { deriveUic } from "@/lib/wc-uic-map";
+import { deriveStatus, deriveUic, TERMINAL_UIC } from "@/lib/wc-uic-map";
 import { ORDER_STATUSES, isCanonicalOrderStatus } from "@/lib/order-status";
 import { ENGINE_TYPES, isEngineType } from "@/lib/engine-types";
 import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
@@ -202,19 +202,31 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           </Field>
 
           <Field label="Status">
-            <select
-              name="status"
-              defaultValue={isCanonicalOrderStatus(base.status) ? base.status : ""}
-              disabled={!canEdit}
-              className="field-input"
-            >
-              <option value="">— unset —</option>
-              {ORDER_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            {derivedUic === TERMINAL_UIC ? (
+              <>
+                <input
+                  value={`${deriveStatus(derivedUic, null)} (auto — in serviceable store)`}
+                  readOnly
+                  disabled
+                  className="field-input text-text-secondary"
+                />
+                <input type="hidden" name="status" value={deriveStatus(derivedUic, null) ?? ""} />
+              </>
+            ) : (
+              <select
+                name="status"
+                defaultValue={isCanonicalOrderStatus(base.status) ? base.status : ""}
+                disabled={!canEdit}
+                className="field-input"
+              >
+                <option value="">— unset —</option>
+                {ORDER_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
           <Field label="Plan finish date">
             <input

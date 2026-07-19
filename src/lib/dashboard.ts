@@ -4,6 +4,7 @@ import { orders, shiftReportEntries, dailyMenuEntries, repairPlannerEntries } fr
 import { getPreviousShift } from "@/lib/daily-menu";
 import { summarize } from "@/lib/shift-report";
 import { currentShift } from "@/lib/shift";
+import { TERMINAL_UIC } from "@/lib/wc-uic-map";
 
 const DONE_STATUSES = ["completed", "cancelled"];
 const REPEAT_WINDOW_DAYS = 10;
@@ -23,6 +24,10 @@ export interface DashboardSummary {
   today: string;
   shift: "AM" | "PM" | "Overtime";
   totalOrders: number;
+  /** Orders sitting in the Kitting/RPC serviceable store — finished, not active
+   * work. Excluded from uicBreakdown and staleOrders since it's a terminal state,
+   * not a queue (see wc-uic-map.ts: TERMINAL_UIC). */
+  inServiceableStore: number;
   statusBreakdown: Array<{ label: string; count: number }>;
   uicBreakdown: Array<{ label: string; count: number }>;
   overdueOrders: Array<{ orderNumber: string; description: string | null; gate4Target: string | null; status: string | null }>;
@@ -44,6 +49,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const [
     totalOrdersResult,
+    inStoreResult,
     statusRows,
     uicRows,
     overdueOrders,
@@ -56,6 +62,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(orders).where(eq(orders.archived, false)),
     db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(and(eq(orders.archived, false), eq(orders.uicToday, TERMINAL_UIC))),
+    db
       .select({ label: orders.status, n: sql<number>`count(*)::int` })
       .from(orders)
       .where(eq(orders.archived, false))
@@ -64,7 +74,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     db
       .select({ label: orders.uicToday, n: sql<number>`count(*)::int` })
       .from(orders)
-      .where(eq(orders.archived, false))
+      .where(and(eq(orders.archived, false), or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC))))
       .groupBy(orders.uicToday)
       .orderBy(desc(sql`count(*)`)),
     db
@@ -127,6 +137,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     today,
     shift,
     totalOrders: totalOrdersResult[0]?.n ?? 0,
+    inServiceableStore: inStoreResult[0]?.n ?? 0,
     statusBreakdown: statusRows.map((r) => ({ label: r.label || "Unset", count: r.n })),
     uicBreakdown: uicRows.map((r) => ({ label: r.label || "Unassigned", count: r.n })),
     overdueOrders,
@@ -140,8 +151,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 }
 
 /** Orders with no shift-report activity in the last 7 days, excluding orders already
- * marked done — a part sitting untouched this long usually means it's blocked on
- * something outside the shift-report workflow (material, decision, tooling). */
+ * marked done or already sitting in the Kitting/RPC serviceable store — a part
+ * untouched this long usually means it's blocked on something outside the
+ * shift-report workflow (material, decision, tooling), but idle-in-storage is the
+ * expected end state, not a problem. */
 async function getStaleOrders() {
   const touchedRows = await db
     .selectDistinct({ orderNumber: shiftReportEntries.orderNumber })
@@ -152,7 +165,7 @@ async function getStaleOrders() {
   const activeOrders = await db
     .select({ orderNumber: orders.orderNumber, description: orders.description, uicToday: orders.uicToday, status: orders.status })
     .from(orders)
-    .where(eq(orders.archived, false))
+    .where(and(eq(orders.archived, false), or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC))))
     .limit(500);
 
   return activeOrders

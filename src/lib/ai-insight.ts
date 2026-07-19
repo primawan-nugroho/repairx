@@ -27,9 +27,9 @@ function buildPrompt(summary: DashboardSummary): string {
 
   return `Shift context: ${summary.shift} shift on ${formatDate(summary.today)}.
 
-Orders open: ${summary.totalOrders} total.
+Orders open: ${summary.totalOrders} total, of which ${summary.inServiceableStore} are in the Kitting/RPC serviceable store — meaning the repair is already FINISHED and the part is just awaiting pickup/shipment. Kitting/RPC is not active work and must never be described as a bottleneck, backlog, or workload; it is excluded from the UIC breakdown below.
 By status: ${statusLines || "none"}.
-By UIC (work team): ${uicLines || "none"}.
+By UIC (active work only, Kitting/RPC excluded): ${uicLines || "none"}.
 
 Orders past their Gate 4 target date (overdue): ${overdueLines}.
 
