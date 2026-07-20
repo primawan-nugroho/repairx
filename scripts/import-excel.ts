@@ -3,6 +3,7 @@ import { config } from "dotenv";
 import * as XLSX from "xlsx";
 import { forceIpv4 } from "@/lib/force-ipv4";
 import { deriveUic } from "@/lib/wc-uic-map";
+import { getMasters } from "@/lib/masters";
 import { db } from "@/db";
 import { orders, shiftReportEntries } from "@/db/schema";
 
@@ -70,6 +71,7 @@ async function importMainDatabase() {
   const wb = XLSX.readFile(path.join(ROOT, "Main Database.xlsx"));
   const sheet = wb.Sheets[wb.SheetNames[0]!]!;
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+  const { workCenterToUic } = await getMasters();
 
   let imported = 0;
   for (const row of rows) {
@@ -86,7 +88,7 @@ async function importMainDatabase() {
     // UIC is derived from the work center per the mapping rule (see wc-uic-map.ts).
     // Only fall back to the spreadsheet's own UIC value when the work center isn't
     // in the mapping — never let stale/free-typed UIC data override a known mapping.
-    const uicToday = deriveUic(mwcToday) ?? sheetUic;
+    const uicToday = deriveUic(mwcToday, workCenterToUic) ?? sheetUic;
 
     const values = {
       orderNumber,

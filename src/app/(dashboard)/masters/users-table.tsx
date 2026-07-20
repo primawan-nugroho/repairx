@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { User } from "@/db/schema";
 import { setUserActiveAction } from "./actions";
 import { ResetPasswordButton } from "./reset-password-dialog";
+import { EditUserButton } from "./edit-user-dialog";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -58,6 +59,7 @@ export function UsersTable({ users, currentUserId }: { users: User[]; currentUse
               </td>
               <td className="px-3 py-2.5">
                 <div className="flex items-center gap-3">
+                  <EditUserButton user={user} isSelf={user.id === currentUserId} />
                   <button
                     onClick={() => toggleActive(user)}
                     disabled={pending || user.id === currentUserId}

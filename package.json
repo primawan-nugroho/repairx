@@ -12,7 +12,7 @@
     "db:studio": "drizzle-kit studio",
     "import:excel": "tsx scripts/import-excel.ts",
     "create-user": "tsx scripts/create-user.ts",
-    "migrate:uic": "tsx scripts/migrate-uic.ts"
+    "seed-masters": "tsx scripts/seed-masters.ts"
   },
   "dependencies": {
     "@dicebear/core": "^10.2.0",

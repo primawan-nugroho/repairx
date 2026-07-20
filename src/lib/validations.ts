@@ -115,6 +115,15 @@ export const createUserSchema = z.object({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
+export const updateUserSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+  username: z.string().min(1).max(64),
+  displayName: z.string().min(1).max(128),
+  role: z.enum(["admin", "production_control", "viewer"]),
+});
+
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Order } from "@/db/schema";
+import type { OrderMasters } from "@/lib/masters";
 import { cn } from "@/lib/utils";
 import { wcColorKey } from "@/lib/wc-uic-map";
 
@@ -20,9 +21,11 @@ const COLOR_CLASSES: Record<string, string> = {
 
 export function WorkCenterRoutingPopover({
   order,
+  masters,
   onClose,
 }: {
   order: Order;
+  masters: OrderMasters;
   onClose: () => void;
 }) {
   const steps = (order.mwcRouting ?? "")
@@ -60,7 +63,7 @@ export function WorkCenterRoutingPopover({
           <div className="flex flex-wrap items-center gap-2">
             {steps.map((step, i) => {
               const isCurrent = order.mwcToday === step;
-              const colorKey = wcColorKey(step);
+              const colorKey = wcColorKey(step, masters.workCenterToUic, masters.uicColorSlugs);
               return (
                 <div key={`${step}-${i}`} className="flex items-center gap-2">
                   <span

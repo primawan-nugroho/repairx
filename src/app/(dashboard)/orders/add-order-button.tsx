@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { OrderMasters } from "@/lib/masters";
 import { OrderEditDialog } from "./order-edit-dialog";
 
-export function AddOrderButton() {
+export function AddOrderButton({ masters }: { masters: OrderMasters }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,7 +15,7 @@ export function AddOrderButton() {
       >
         Add order
       </button>
-      {open && <OrderEditDialog canEdit onClose={() => setOpen(false)} />}
+      {open && <OrderEditDialog canEdit masters={masters} onClose={() => setOpen(false)} />}
     </>
   );
 }

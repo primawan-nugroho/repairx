@@ -13,7 +13,15 @@ interface OrderLookup {
   mwcToday: string | null;
 }
 
-export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shift: string }) {
+export function DailyMenuEntryForm({
+  menuDate,
+  shift,
+  workCenterToUic,
+}: {
+  menuDate: string;
+  shift: string;
+  workCenterToUic: Record<string, string>;
+}) {
   const { showToast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
@@ -22,7 +30,7 @@ export function DailyMenuEntryForm({ menuDate, shift }: { menuDate: string; shif
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const request = useRef(0);
-  const derivedUic = deriveUic(workCenter);
+  const derivedUic = deriveUic(workCenter, workCenterToUic);
 
   async function handleOrderBlur(value: string) {
     const id = ++request.current;

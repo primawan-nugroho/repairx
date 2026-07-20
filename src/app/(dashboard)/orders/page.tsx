@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDistinctOrderValues, getOrders, ORDERS_PAGE_SIZE } from "@/lib/orders";
+import { getMasters } from "@/lib/masters";
 import { OrdersTable } from "./orders-table";
 import { AddOrderButton } from "./add-order-button";
 import { BulkAddOrdersButton } from "./bulk-add-orders-button";
@@ -30,7 +31,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const page = Number(params.page ?? "1") || 1;
 
-  const [{ rows, total }, engineTypeOptions, workCenterOptions, uicOptions, statusOptions] =
+  const [{ rows, total }, engineTypeOptions, workCenterOptions, uicOptions, statusOptions, masters] =
     await Promise.all([
       getOrders({
         q: params.q,
@@ -50,6 +51,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       getDistinctOrderValues("mwcToday"),
       getDistinctOrderValues("uicToday"),
       getDistinctOrderValues("status"),
+      getMasters(),
     ]);
 
   const totalPages = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
@@ -84,8 +86,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           <span className="data-mono text-sm text-text-secondary">{total} total</span>
           {canEdit && (
             <div className="flex items-center gap-2">
-              <BulkAddOrdersButton />
-              <AddOrderButton />
+              <BulkAddOrdersButton masters={masters} />
+              <AddOrderButton masters={masters} />
             </div>
           )}
         </div>
@@ -135,6 +137,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           uic: uicOptions,
           status: statusOptions,
         }}
+        masters={masters}
       />
 
       <div className="flex items-center justify-between">

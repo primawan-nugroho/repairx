@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getShiftReportEntries, summarize } from "@/lib/shift-report";
+import { getMasters } from "@/lib/masters";
 import { ShiftEntryForm } from "./entry-form";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
 import { currentShift } from "@/lib/shift";
@@ -19,7 +20,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
   const reportDate = params.date || todayIso();
   const shift = params.shift || currentShift();
 
-  const entries = await getShiftReportEntries(reportDate, shift);
+  const [entries, masters] = await Promise.all([getShiftReportEntries(reportDate, shift), getMasters()]);
   const summary = summarize(entries);
   const canEdit = Boolean(session && session.user.role !== "viewer");
 
@@ -66,7 +67,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      {canEdit && <ShiftEntryForm reportDate={reportDate} shift={shift} />}
+      {canEdit && <ShiftEntryForm reportDate={reportDate} shift={shift} workCenterToUic={masters.workCenterToUic} />}
 
       <div className="bg-surface-solid flex gap-6 rounded-lg border border-border p-4">
         <Stat label="Entries" value={summary.totalEntries} />
@@ -80,6 +81,7 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
         onSave={updateShiftReportEntry}
         onDelete={archiveShiftReportEntry}
         emptyMessage="No entries logged for this date/shift yet."
+        masters={masters}
       />
     </div>
   );

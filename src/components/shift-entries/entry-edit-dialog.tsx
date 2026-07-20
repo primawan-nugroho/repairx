@@ -14,6 +14,7 @@ interface EntryEditDialogProps {
   onSave: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
+  workCenterToUic: Record<string, string>;
 }
 
 export function EntryEditDialog({
@@ -23,6 +24,7 @@ export function EntryEditDialog({
   onSave,
   onDelete,
   onClose,
+  workCenterToUic,
 }: EntryEditDialogProps) {
   const { showToast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -31,7 +33,7 @@ export function EntryEditDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [workCenter, setWorkCenter] = useState(entry.workCenter ?? "");
 
-  const derivedUic = deriveUic(workCenter);
+  const derivedUic = deriveUic(workCenter, workCenterToUic);
 
   useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 

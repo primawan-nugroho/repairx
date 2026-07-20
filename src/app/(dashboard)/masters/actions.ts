@@ -6,7 +6,7 @@ import { hash } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createUserSchema, resetPasswordSchema } from "@/lib/validations";
+import { createUserSchema, resetPasswordSchema, updateUserSchema } from "@/lib/validations";
 
 async function requireAdmin() {
   const session = await auth();
@@ -40,6 +40,33 @@ export async function createUserAction(formData: FormData) {
     displayName: parsed.displayName.trim(),
     role: parsed.role,
   });
+
+  revalidatePath("/masters");
+}
+
+export async function updateUserAction(formData: FormData) {
+  const session = await requireAdmin();
+
+  const parsed = updateUserSchema.parse(Object.fromEntries(formData.entries()));
+  const username = parsed.username.trim().toLowerCase();
+
+  if (Number(session.user.id) === parsed.userId && parsed.role !== "admin") {
+    throw new Error("You cannot remove your own admin role.");
+  }
+
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  if (existing && existing.id !== parsed.userId) {
+    throw new Error(`Username "${username}" is already taken.`);
+  }
+
+  await db
+    .update(users)
+    .set({ username, displayName: parsed.displayName.trim(), role: parsed.role })
+    .where(eq(users.id, parsed.userId));
 
   revalidatePath("/masters");
 }

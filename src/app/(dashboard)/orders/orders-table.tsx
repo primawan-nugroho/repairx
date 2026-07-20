@@ -9,6 +9,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type { Order } from "@/db/schema";
+import type { OrderMasters } from "@/lib/masters";
 import { StatusBadge } from "@/components/status-badge";
 import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
 import { OrderEditDialog } from "./order-edit-dialog";
@@ -27,11 +28,13 @@ export function OrdersTable({
   canEdit,
   currentSearch,
   filterOptions,
+  masters,
 }: {
   data: Order[];
   canEdit: boolean;
   currentSearch: Record<string, string | undefined>;
   filterOptions: FilterOptions;
+  masters: OrderMasters;
 }) {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [routingOrder, setRoutingOrder] = useState<Order | null>(null);
@@ -138,6 +141,8 @@ export function OrdersTable({
       cell: (info) => (
         <WorkCenterBadge
           workCenter={info.getValue()}
+          workCenterToUic={masters.workCenterToUic}
+          uicColorSlugs={masters.uicColorSlugs}
           onClick={info.getValue() ? () => setRoutingOrder(info.row.original) : undefined}
         />
       ),
@@ -155,7 +160,7 @@ export function OrdersTable({
             options={filterOptions.uic}
           />,
         ),
-      cell: (info) => <UicBadge uic={info.getValue()} />,
+      cell: (info) => <UicBadge uic={info.getValue()} uicColorSlugs={masters.uicColorSlugs} />,
     }),
     columnHelper.accessor("status", {
       header: () =>
@@ -253,12 +258,13 @@ export function OrdersTable({
         <OrderEditDialog
           order={editingOrder}
           canEdit={canEdit}
+          masters={masters}
           onClose={() => setEditingOrder(null)}
         />
       )}
 
       {routingOrder && (
-        <WorkCenterRoutingPopover order={routingOrder} onClose={() => setRoutingOrder(null)} />
+        <WorkCenterRoutingPopover order={routingOrder} masters={masters} onClose={() => setRoutingOrder(null)} />
       )}
     </>
   );

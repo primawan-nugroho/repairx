@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderByNumber, getShiftReportHistory, getDailyMenuHistory } from "@/lib/order-history";
+import { getMasters } from "@/lib/masters";
 import { formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
@@ -22,9 +23,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
   const order = await getOrderByNumber(orderNumber);
   if (!order) notFound();
 
-  const [shiftHistory, menuHistory] = await Promise.all([
+  const [shiftHistory, menuHistory, masters] = await Promise.all([
     getShiftReportHistory(orderNumber),
     getDailyMenuHistory(orderNumber),
+    getMasters(),
   ]);
 
   const tatDays = order.dateIn && order.completedAt ? daysBetween(order.dateIn, order.completedAt) : null;
@@ -59,8 +61,17 @@ export default async function OrderDetailPage({ params }: PageProps) {
         />
         <InfoField label="Serial number" value={order.serialNumber || "-"} mono />
         <InfoField label="Engine type" value={order.engineType || "-"} />
-        <InfoField label="Work center" value={<WorkCenterBadge workCenter={order.mwcToday} />} />
-        <InfoField label="UIC" value={<UicBadge uic={order.uicToday} />} />
+        <InfoField
+          label="Work center"
+          value={
+            <WorkCenterBadge
+              workCenter={order.mwcToday}
+              workCenterToUic={masters.workCenterToUic}
+              uicColorSlugs={masters.uicColorSlugs}
+            />
+          }
+        />
+        <InfoField label="UIC" value={<UicBadge uic={order.uicToday} uicColorSlugs={masters.uicColorSlugs} />} />
         <InfoField label="MWC routing" value={order.mwcRouting || "-"} mono />
         <InfoField label="Location" value={order.location || "-"} />
         <div className="col-span-2 md:col-span-4">
@@ -89,10 +100,14 @@ export default async function OrderDetailPage({ params }: PageProps) {
                   <td className="data-mono whitespace-nowrap px-3 py-2">{formatDate(entry.reportDate)}</td>
                   <td className="whitespace-nowrap px-3 py-2">{entry.shift}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <WorkCenterBadge workCenter={entry.workCenter} />
+                    <WorkCenterBadge
+                      workCenter={entry.workCenter}
+                      workCenterToUic={masters.workCenterToUic}
+                      uicColorSlugs={masters.uicColorSlugs}
+                    />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <UicBadge uic={entry.uic} />
+                    <UicBadge uic={entry.uic} uicColorSlugs={masters.uicColorSlugs} />
                   </td>
                   <td className="data-mono whitespace-nowrap px-3 py-2">{entry.ops || "-"}</td>
                   <td className="max-w-[320px] px-3 py-2">
@@ -126,10 +141,14 @@ export default async function OrderDetailPage({ params }: PageProps) {
                   <td className="data-mono whitespace-nowrap px-3 py-2">{formatDate(entry.menuDate)}</td>
                   <td className="whitespace-nowrap px-3 py-2">{entry.shift}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <WorkCenterBadge workCenter={entry.workCenter} />
+                    <WorkCenterBadge
+                      workCenter={entry.workCenter}
+                      workCenterToUic={masters.workCenterToUic}
+                      uicColorSlugs={masters.uicColorSlugs}
+                    />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <UicBadge uic={entry.uic} />
+                    <UicBadge uic={entry.uic} uicColorSlugs={masters.uicColorSlugs} />
                   </td>
                   <td className="data-mono whitespace-nowrap px-3 py-2">{entry.ops || "-"}</td>
                   <td className="max-w-[320px] px-3 py-2">

@@ -15,9 +15,15 @@ export const CATEGORICAL_COLOR_CLASSES: Record<string, string> = {
   unmapped: "bg-uic-unmapped/15 text-uic-unmapped",
 };
 
-export function UicBadge({ uic }: { uic: string | null | undefined }) {
+export function UicBadge({
+  uic,
+  uicColorSlugs,
+}: {
+  uic: string | null | undefined;
+  uicColorSlugs: Record<string, string>;
+}) {
   if (!uic) return <span className="text-text-tertiary">-</span>;
-  const key = uicColorKey(uic);
+  const key = uicColorKey(uic, uicColorSlugs);
   return (
     <span
       className={cn(
@@ -32,13 +38,17 @@ export function UicBadge({ uic }: { uic: string | null | undefined }) {
 
 export function WorkCenterBadge({
   workCenter,
+  workCenterToUic,
+  uicColorSlugs,
   onClick,
 }: {
   workCenter: string | null | undefined;
+  workCenterToUic: Record<string, string>;
+  uicColorSlugs: Record<string, string>;
   onClick?: () => void;
 }) {
   if (!workCenter) return <span className="text-text-tertiary">-</span>;
-  const key = wcColorKey(workCenter);
+  const key = wcColorKey(workCenter, workCenterToUic, uicColorSlugs);
   const Comp = onClick ? "button" : "span";
   return (
     <Comp

@@ -4,9 +4,10 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
-import { deriveStatus, deriveUic, TERMINAL_UIC } from "@/lib/wc-uic-map";
+import type { OrderMasters } from "@/lib/masters";
+import { deriveStatus, deriveUic } from "@/lib/wc-uic-map";
 import { ORDER_STATUSES, isCanonicalOrderStatus } from "@/lib/order-status";
-import { ENGINE_TYPES, isEngineType } from "@/lib/engine-types";
+import { isEngineType } from "@/lib/engine-types";
 import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
 import { useToast } from "@/components/toast";
 import { archiveOrder, createOrder, lookupEngineTypeBySerial, upsertOrder } from "./actions";
@@ -14,12 +15,13 @@ import { archiveOrder, createOrder, lookupEngineTypeBySerial, upsertOrder } from
 interface OrderEditDialogProps {
   order?: Order;
   canEdit: boolean;
+  masters: OrderMasters;
   onClose: () => void;
 }
 
 const BLANK_ORDER: Partial<Order> = {};
 
-export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProps) {
+export function OrderEditDialog({ order, canEdit, masters, onClose }: OrderEditDialogProps) {
   const isNew = !order;
   const base = order ?? BLANK_ORDER;
   const router = useRouter();
@@ -30,17 +32,17 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
   const [orderNumber, setOrderNumber] = useState(base.orderNumber ?? "");
   const [mwcToday, setMwcToday] = useState(base.mwcToday ?? "");
   const [serialNumber, setSerialNumber] = useState(base.serialNumber ?? "");
-  const [engineType, setEngineType] = useState(isEngineType(base.engineType) ? base.engineType : "");
+  const [engineType, setEngineType] = useState(isEngineType(base.engineType, masters.engineTypes) ? base.engineType : "");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const derivedUic = deriveUic(mwcToday);
+  const derivedUic = deriveUic(mwcToday, masters.workCenterToUic);
 
   useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
   async function handleSerialBlur(value: string) {
     if (!value.trim() || engineType) return;
     const found = await lookupEngineTypeBySerial(value);
-    if (found && isEngineType(found)) {
+    if (found && isEngineType(found, masters.engineTypes)) {
       setEngineType(found);
     }
   }
@@ -181,7 +183,7 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
               className="field-input"
             >
               <option value="">— unset —</option>
-              {ENGINE_TYPES.map((t) => (
+              {masters.engineTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -213,15 +215,15 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           </Field>
 
           <Field label="Status">
-            {derivedUic === TERMINAL_UIC ? (
+            {masters.terminalUic && derivedUic === masters.terminalUic ? (
               <>
                 <input
-                  value={`${deriveStatus(derivedUic, null)} (auto — in serviceable store)`}
+                  value={`${deriveStatus(derivedUic, null, masters.terminalUic)} (auto — in serviceable store)`}
                   readOnly
                   disabled
                   className="field-input text-text-secondary"
                 />
-                <input type="hidden" name="status" value={deriveStatus(derivedUic, null) ?? ""} />
+                <input type="hidden" name="status" value={deriveStatus(derivedUic, null, masters.terminalUic) ?? ""} />
               </>
             ) : (
               <select

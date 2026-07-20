@@ -58,8 +58,10 @@ export function StatusBarChart({ rows }: { rows: BarRow[] }) {
   return <BarList rows={rows} colorFor={(label) => STATUS_VARS[statusColorKey(label)] ?? "var(--status-open)"} />;
 }
 
-export function UicBarChart({ rows }: { rows: BarRow[] }) {
-  return <BarList rows={rows} colorFor={(label) => UIC_VARS[uicColorKey(label)] ?? "var(--uic-unmapped)"} />;
+export function UicBarChart({ rows, uicColorSlugs }: { rows: BarRow[]; uicColorSlugs: Record<string, string> }) {
+  return (
+    <BarList rows={rows} colorFor={(label) => UIC_VARS[uicColorKey(label, uicColorSlugs)] ?? "var(--uic-unmapped)"} />
+  );
 }
 
 /** Same bar-list layout as BarList but for a non-count metric (e.g. average days) —

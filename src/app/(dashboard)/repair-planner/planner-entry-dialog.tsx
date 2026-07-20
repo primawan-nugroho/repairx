@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { RepairPlannerEntry } from "@/db/schema";
-import { ENGINE_TYPES, isEngineType } from "@/lib/engine-types";
+import { isEngineType } from "@/lib/engine-types";
 import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
 import { useToast } from "@/components/toast";
 import { archiveRepairPlannerEntry, createRepairPlannerEntry, updateRepairPlannerEntry } from "./actions";
@@ -21,11 +21,15 @@ interface PlannerEntryDialogProps {
   canEdit: boolean;
   onClose: () => void;
   options: DropdownOptions;
+  /** Canonical engine/APU type list (see lib/masters.ts) — distinct from
+   * options.engineType, which is the column filter's list of values already present
+   * in this table's own rows. */
+  engineTypes: string[];
 }
 
 const BLANK: Partial<RepairPlannerEntry> = {};
 
-export function PlannerEntryDialog({ entry, canEdit, onClose, options }: PlannerEntryDialogProps) {
+export function PlannerEntryDialog({ entry, canEdit, onClose, options, engineTypes }: PlannerEntryDialogProps) {
   const isNew = !entry;
   const base = entry ?? BLANK;
   const router = useRouter();
@@ -34,7 +38,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [engineType, setEngineType] = useState(isEngineType(base.engineType) ? base.engineType : "");
+  const [engineType, setEngineType] = useState(isEngineType(base.engineType, engineTypes) ? base.engineType : "");
 
   useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
@@ -124,7 +128,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options }: Planner
               className="field-input data-mono"
             >
               <option value="">— unset —</option>
-              {ENGINE_TYPES.map((t) => (
+              {engineTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>

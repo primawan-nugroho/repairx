@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDailyMenuEntries, getPreviousShift } from "@/lib/daily-menu";
+import { getMasters } from "@/lib/masters";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
 import { currentShift } from "@/lib/shift";
 import { PopulateButton } from "./populate-button";
@@ -20,7 +21,7 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
   const menuDate = params.date || todayIso();
   const shift = params.shift || currentShift();
 
-  const entries = await getDailyMenuEntries(menuDate, shift);
+  const [entries, masters] = await Promise.all([getDailyMenuEntries(menuDate, shift), getMasters()]);
   const canEdit = Boolean(session && session.user.role !== "viewer");
   const prev = getPreviousShift(menuDate, shift);
 
@@ -70,7 +71,7 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      {canEdit && <DailyMenuEntryForm menuDate={menuDate} shift={shift} />}
+      {canEdit && <DailyMenuEntryForm menuDate={menuDate} shift={shift} workCenterToUic={masters.workCenterToUic} />}
 
       {entries.length === 0 && canEdit && (
         <div className="bg-surface-solid flex items-center justify-between rounded-lg border border-border p-4">
@@ -88,6 +89,7 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
         onSave={updateDailyMenuEntry}
         onDelete={archiveDailyMenuEntry}
         emptyMessage="No menu entries for this date/shift yet."
+        masters={masters}
       />
     </div>
   );

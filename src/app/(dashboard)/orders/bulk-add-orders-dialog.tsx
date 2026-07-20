@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ENGINE_TYPES } from "@/lib/engine-types";
+import type { OrderMasters } from "@/lib/masters";
 import {
   BULK_ORDER_COLUMNS,
   blankBulkOrderRow,
@@ -24,7 +24,7 @@ function toRow(base: BulkOrderRow): Row {
   return { ...base, key: nextKey++, duplicate: false };
 }
 
-export function BulkAddOrdersDialog({ onClose }: { onClose: () => void }) {
+export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMasters; onClose: () => void }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [pasteText, setPasteText] = useState("");
@@ -34,7 +34,7 @@ export function BulkAddOrdersDialog({ onClose }: { onClose: () => void }) {
   const checkRequest = useRef(0);
 
   function handleParse() {
-    const parsed = parseBulkOrderText(pasteText);
+    const parsed = parseBulkOrderText(pasteText, masters.engineTypes);
     if (parsed.length === 0) return;
     setRows(parsed.map(toRow));
     setError(null);
@@ -220,7 +220,7 @@ export function BulkAddOrdersDialog({ onClose }: { onClose: () => void }) {
                           className="cell-input"
                         >
                           <option value="">— unset —</option>
-                          {ENGINE_TYPES.map((t) => (
+                          {masters.engineTypes.map((t) => (
                             <option key={t} value={t}>
                               {t}
                             </option>
@@ -243,7 +243,9 @@ export function BulkAddOrdersDialog({ onClose }: { onClose: () => void }) {
                         />
                       </td>
                       <td className="px-2 py-1.5">
-                        <span className="text-xs text-text-secondary">{deriveUic(row.workCenter) ?? "-"}</span>
+                        <span className="text-xs text-text-secondary">
+                          {deriveUic(row.workCenter, masters.workCenterToUic) ?? "-"}
+                        </span>
                       </td>
                       <td className="px-2 py-1.5">
                         <input

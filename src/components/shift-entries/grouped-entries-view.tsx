@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { OrderMasters } from "@/lib/masters";
 import { UicBadge } from "@/components/uic-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { groupByUic } from "@/lib/shift-report";
@@ -15,6 +16,7 @@ interface GroupedEntriesViewProps {
   onSave: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   emptyMessage: string;
+  masters: OrderMasters;
 }
 
 export function GroupedEntriesView({
@@ -24,6 +26,7 @@ export function GroupedEntriesView({
   onSave,
   onDelete,
   emptyMessage,
+  masters,
 }: GroupedEntriesViewProps) {
   const [editing, setEditing] = useState<EditableShiftEntry | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -63,7 +66,7 @@ export function GroupedEntriesView({
         return (
           <div key={uic} className="rounded-lg border border-border overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 bg-surface px-3 py-2">
-              <UicBadge uic={uic === "Unassigned" ? null : uic} />
+              <UicBadge uic={uic === "Unassigned" ? null : uic} uicColorSlugs={masters.uicColorSlugs} />
               {uic === "Unassigned" && <span className="text-xs font-medium text-text-secondary">Unassigned</span>}
               <span className="data-mono text-xs text-text-secondary">
                 {groupEntries.length} {groupEntries.length === 1 ? "entry" : "entries"} · {finalCount} final · avg{" "}
@@ -183,6 +186,7 @@ export function GroupedEntriesView({
           onSave={onSave}
           onDelete={onDelete}
           onClose={() => setEditing(null)}
+          workCenterToUic={masters.workCenterToUic}
         />
       )}
     </div>

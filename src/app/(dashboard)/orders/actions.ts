@@ -6,32 +6,33 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { orders, repairPlannerEntries } from "@/db/schema";
 import { orderSchema } from "@/lib/validations";
-import { deriveStatus, deriveUic, TERMINAL_UIC } from "@/lib/wc-uic-map";
+import { deriveStatus, deriveUic } from "@/lib/wc-uic-map";
 import { isEngineType } from "@/lib/engine-types";
+import { getMasters, type OrderMasters } from "@/lib/masters";
 import type { BulkOrderRow } from "@/lib/bulk-order-parse";
 
-function parseOrderForm(formData: FormData) {
+function parseOrderForm(formData: FormData, masters: OrderMasters) {
   const raw = Object.fromEntries(formData.entries());
   const parsed = orderSchema.parse(raw);
 
   // UIC is always derived from the work center (see wc-uic-map.ts) — never accept a
   // client-submitted UIC, even if the form somehow included one. Status is derived
-  // the same way once the part reaches the Kitting/RPC serviceable store — see
-  // deriveStatus.
-  const uicToday = deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null;
-  return { ...parsed, uicToday, status: deriveStatus(uicToday, parsed.status) };
+  // the same way once the part reaches the serviceable store — see deriveStatus.
+  const uicToday = deriveUic(parsed.mwcToday, masters.workCenterToUic) ?? parsed.uicToday ?? null;
+  return { ...parsed, uicToday, status: deriveStatus(uicToday, parsed.status, masters.terminalUic) };
 }
 
 /** completedAt is the source for turnaround-time metrics — stamped the instant an
  * order first reaches the serviceable store, kept stable across later unrelated
  * edits (so re-saving the same order doesn't reset the clock), and cleared if the
- * order is ever routed back out of Kitting/RPC (see TERMINAL_UIC in wc-uic-map.ts). */
+ * order is ever routed back out (see terminalUic in lib/masters.ts). */
 function computeCompletedAt(
   newUic: string | null,
   previous: { uicToday: string | null; completedAt: Date | null } | undefined,
+  terminalUic: string | null,
 ): Date | null {
-  if (newUic !== TERMINAL_UIC) return null;
-  if (previous?.uicToday === TERMINAL_UIC && previous.completedAt) return previous.completedAt;
+  if (!terminalUic || newUic !== terminalUic) return null;
+  if (previous?.uicToday === terminalUic && previous.completedAt) return previous.completedAt;
   return new Date();
 }
 
@@ -45,8 +46,9 @@ async function requireEditor() {
 
 export async function upsertOrder(formData: FormData) {
   await requireEditor();
+  const masters = await getMasters();
 
-  const values = parseOrderForm(formData);
+  const values = parseOrderForm(formData, masters);
   const originalOrderNumber = (formData.get("originalOrderNumber") as string | null) || null;
 
   if (originalOrderNumber && originalOrderNumber !== values.orderNumber) {
@@ -70,7 +72,7 @@ export async function upsertOrder(formData: FormData) {
 
     await db
       .update(orders)
-      .set({ ...values, completedAt: computeCompletedAt(values.uicToday, existing), updatedAt: new Date() })
+      .set({ ...values, completedAt: computeCompletedAt(values.uicToday, existing, masters.terminalUic), updatedAt: new Date() })
       .where(eq(orders.orderNumber, originalOrderNumber));
   } else {
     const [existing] = await db
@@ -81,10 +83,10 @@ export async function upsertOrder(formData: FormData) {
 
     await db
       .insert(orders)
-      .values({ ...values, completedAt: computeCompletedAt(values.uicToday, existing) })
+      .values({ ...values, completedAt: computeCompletedAt(values.uicToday, existing, masters.terminalUic) })
       .onConflictDoUpdate({
         target: orders.orderNumber,
-        set: { ...values, completedAt: computeCompletedAt(values.uicToday, existing), updatedAt: new Date() },
+        set: { ...values, completedAt: computeCompletedAt(values.uicToday, existing, masters.terminalUic), updatedAt: new Date() },
       });
   }
 
@@ -94,8 +96,9 @@ export async function upsertOrder(formData: FormData) {
 
 export async function createOrder(formData: FormData) {
   await requireEditor();
+  const masters = await getMasters();
 
-  const values = parseOrderForm(formData);
+  const values = parseOrderForm(formData, masters);
   if (!values.orderNumber) {
     throw new Error("Order number is required");
   }
@@ -110,7 +113,7 @@ export async function createOrder(formData: FormData) {
     throw new Error(`Order ${values.orderNumber} already exists.`);
   }
 
-  await db.insert(orders).values({ ...values, completedAt: computeCompletedAt(values.uicToday, undefined) });
+  await db.insert(orders).values({ ...values, completedAt: computeCompletedAt(values.uicToday, undefined, masters.terminalUic) });
 
   revalidatePath("/orders");
 }
@@ -148,6 +151,7 @@ export async function checkExistingOrderNumbers(orderNumbers: string[]) {
  * safe to insert, so one bad row can't fail the whole batch. */
 export async function createOrdersBulk(rows: BulkOrderRow[]) {
   await requireEditor();
+  const masters = await getMasters();
 
   const seen = new Set<string>();
   const candidates = rows
@@ -178,17 +182,17 @@ export async function createOrdersBulk(rows: BulkOrderRow[]) {
   }
 
   const values = toInsert.map((r) => {
-    const uicToday = deriveUic(r.workCenter) ?? null;
+    const uicToday = deriveUic(r.workCenter, masters.workCenterToUic) ?? null;
     return {
       orderNumber: r.orderNumber.slice(0, 32),
       description: r.description.trim() || null,
       serialNumber: r.serialNumber.trim().slice(0, 64) || null,
-      engineType: isEngineType(r.engineType) ? r.engineType : null,
+      engineType: isEngineType(r.engineType, masters.engineTypes) ? r.engineType : null,
       dateIn: r.dateIn || null,
       mwcToday: r.workCenter.trim().slice(0, 16) || null,
       uicToday,
-      status: deriveStatus(uicToday, null),
-      completedAt: computeCompletedAt(uicToday, undefined),
+      status: deriveStatus(uicToday, null, masters.terminalUic),
+      completedAt: computeCompletedAt(uicToday, undefined, masters.terminalUic),
       location: r.location.trim().slice(0, 128) || null,
       remark: r.remark.trim() || null,
     };

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { OrderMasters } from "@/lib/masters";
 import { BulkAddOrdersDialog } from "./bulk-add-orders-dialog";
 
-export function BulkAddOrdersButton() {
+export function BulkAddOrdersButton({ masters }: { masters: OrderMasters }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,7 +15,7 @@ export function BulkAddOrdersButton() {
       >
         Add multiple
       </button>
-      {open && <BulkAddOrdersDialog onClose={() => setOpen(false)} />}
+      {open && <BulkAddOrdersDialog masters={masters} onClose={() => setOpen(false)} />}
     </>
   );
 }

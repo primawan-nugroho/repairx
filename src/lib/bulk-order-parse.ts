@@ -1,5 +1,3 @@
-import { isEngineType } from "@/lib/engine-types";
-
 // Column order for pasted Excel rows — shown as a hint in the bulk-add dialog. Only
 // Order number is required; a pasted row can have fewer trailing columns.
 export const BULK_ORDER_COLUMNS = [
@@ -65,21 +63,19 @@ function parseFlexibleDate(raw: string): string {
   return "";
 }
 
-function matchEngineType(raw: string): string {
+function matchEngineType(raw: string, engineTypes: string[]): string {
   const value = raw.trim();
   if (!value) return "";
-  if (isEngineType(value)) return value;
+  if (engineTypes.includes(value)) return value;
   const upper = value.toUpperCase();
-  const match = ["CFM56-3", "CFM56-5B", "CFM56-7B", "GTCP131-9A", "GTCP131-9B", "GTCP331-350C", "GTCP85", "Other"].find(
-    (t) => t.toUpperCase() === upper,
-  );
+  const match = engineTypes.find((t) => t.toUpperCase() === upper);
   return match ?? "";
 }
 
 /** Splits pasted Excel text into rows (tab-separated columns, one order per line).
  * Blank lines are skipped. Rows shorter than 8 columns just leave the trailing
  * fields blank — a paste of only "Order number" and "Description" is valid. */
-export function parseBulkOrderText(text: string): BulkOrderRow[] {
+export function parseBulkOrderText(text: string, engineTypes: string[]): BulkOrderRow[] {
   return text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -90,7 +86,7 @@ export function parseBulkOrderText(text: string): BulkOrderRow[] {
         orderNumber: cells[0] ?? "",
         description: cells[1] ?? "",
         serialNumber: cells[2] ?? "",
-        engineType: matchEngineType(cells[3] ?? ""),
+        engineType: matchEngineType(cells[3] ?? "", engineTypes),
         dateIn: parseFlexibleDate(cells[4] ?? ""),
         workCenter: cells[5] ?? "",
         location: cells[6] ?? "",

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getCachedInsight } from "@/lib/ai-insight";
+import { getMasters } from "@/lib/masters";
 import { formatDate } from "@/lib/utils";
 import { StatusBarChart, UicBarChart, MetricBarList, ThroughputChart } from "./dashboard-charts";
 import { AiInsightCard } from "./ai-insight-card";
 
 export default async function DashboardPage() {
-  const summary = await getDashboardSummary();
+  const [summary, masters] = await Promise.all([getDashboardSummary(), getMasters()]);
   const cachedInsight = await getCachedInsight(summary.today, summary.shift);
 
   return (
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
           label="In serviceable store"
           value={summary.inServiceableStore}
           sub="finished, awaiting pickup"
-          href={`/orders?uic=${encodeURIComponent("Kitting/RPC")}`}
+          href={masters.terminalUic ? `/orders?uic=${encodeURIComponent(masters.terminalUic)}` : "/orders"}
         />
         <KpiTile label="Today's menu entries" value={summary.todayMenuCount} href="/daily-menu" />
         <KpiTile
@@ -50,8 +51,10 @@ export default async function DashboardPage() {
         </div>
         <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
           <h2 className="text-sm font-semibold text-text-primary">Active workload by UIC</h2>
-          <p className="-mt-2 text-xs text-text-tertiary">Excludes Kitting/RPC (serviceable store)</p>
-          <UicBarChart rows={summary.uicBreakdown} />
+          {masters.terminalUic && (
+            <p className="-mt-2 text-xs text-text-tertiary">Excludes {masters.terminalUic} (serviceable store)</p>
+          )}
+          <UicBarChart rows={summary.uicBreakdown} uicColorSlugs={masters.uicColorSlugs} />
         </div>
       </div>
 

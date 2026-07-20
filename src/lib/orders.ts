@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
-import { TERMINAL_UIC } from "@/lib/wc-uic-map";
+import { getMasters } from "@/lib/masters";
 
 export const ORDERS_PAGE_SIZE = 25;
 
@@ -27,6 +27,7 @@ export interface OrdersFilter {
 export async function getOrders(filter: OrdersFilter) {
   const page = Math.max(1, filter.page ?? 1);
   const conditions: SQL[] = [eq(orders.archived, false)];
+  const { terminalUic } = await getMasters();
 
   if (filter.q) {
     const like = `%${filter.q}%`;
@@ -42,10 +43,10 @@ export async function getOrders(filter: OrdersFilter) {
   if (filter.workCenter?.length) conditions.push(inArray(orders.mwcToday, filter.workCenter));
   if (filter.uic?.length) conditions.push(inArray(orders.uicToday, filter.uic));
   if (filter.status?.length) conditions.push(inArray(orders.status, filter.status));
-  // uicToday <> TERMINAL_UIC alone would silently exclude every order with no UIC
-  // yet (SQL NULL <> 'x' is NULL, not true) — those aren't in the store, so keep them.
-  if (filter.hideServiceableStore) {
-    const notInStore = or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC));
+  // uicToday <> terminalUic alone would silently exclude every order with no UIC yet
+  // (SQL NULL <> 'x' is NULL, not true) — those aren't in the store, so keep them.
+  if (filter.hideServiceableStore && terminalUic) {
+    const notInStore = or(isNull(orders.uicToday), ne(orders.uicToday, terminalUic));
     if (notInStore) conditions.push(notInStore);
   }
   if (filter.orderNumberLike) conditions.push(ilike(orders.orderNumber, `%${filter.orderNumberLike}%`));

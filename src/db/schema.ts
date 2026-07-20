@@ -49,7 +49,8 @@ export const orders = pgTable("orders", {
   location: varchar("location", { length: 128 }),
   archived: boolean("archived").notNull().default(false),
   // Stamped automatically the moment the order first reaches the Kitting/RPC
-  // serviceable store (see deriveStatus/TERMINAL_UIC in wc-uic-map.ts) and cleared if
+  // serviceable store (see deriveStatus in wc-uic-map.ts and terminalUic in
+  // lib/masters.ts) and cleared if
   // it ever moves back out — the source for turnaround-time metrics. Never
   // backfilled for orders that were already in the store before this column existed,
   // since we have no record of when that actually happened; fabricating a date would
@@ -155,3 +156,43 @@ export type DailyMenuEntry = typeof dailyMenuEntries.$inferSelect;
 export type NewDailyMenuEntry = typeof dailyMenuEntries.$inferInsert;
 export type AiInsight = typeof aiInsights.$inferSelect;
 export type NewAiInsight = typeof aiInsights.$inferInsert;
+
+// Master data — engine types, UIC teams, and work centers. Previously hardcoded in
+// src/lib/engine-types.ts and src/lib/wc-uic-map.ts; now admin-editable from
+// /masters (see src/lib/masters.ts, which reads and shapes these for the rest of the
+// app). Rows are deactivated, never deleted, so historical orders/entries that
+// reference a retired value keep displaying correctly.
+export const engineTypes = pgTable("engine_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 32 }).notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const uicTeams = pgTable("uic_teams", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 32 }).notNull().unique(),
+  // One of the 10 categorical "uic-a".."uic-j" CSS color slugs — assigned once at
+  // creation (next free slug) so a team's badge color stays stable, not recomputed.
+  colorSlug: varchar("color_slug", { length: 16 }).notNull(),
+  // Reaching this UIC means the repair is finished and the part is in the
+  // serviceable store, not queued for work (see deriveStatus in wc-uic-map.ts).
+  // Exactly one team should have this set at a time — enforced in the admin UI, not
+  // the DB, since a brief zero-or-two-terminal window during an edit is harmless.
+  isTerminal: boolean("is_terminal").notNull().default(false),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const workCenters = pgTable("work_centers", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  uicTeamId: integer("uic_team_id").references(() => uicTeams.id),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type EngineTypeRow = typeof engineTypes.$inferSelect;
+export type UicTeamRow = typeof uicTeams.$inferSelect;
+export type WorkCenterRow = typeof workCenters.$inferSelect;

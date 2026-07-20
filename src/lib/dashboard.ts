@@ -1,10 +1,10 @@
-import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, shiftReportEntries, dailyMenuEntries, repairPlannerEntries } from "@/db/schema";
 import { getPreviousShift } from "@/lib/daily-menu";
 import { summarize } from "@/lib/shift-report";
 import { currentShift } from "@/lib/shift";
-import { TERMINAL_UIC } from "@/lib/wc-uic-map";
+import { getMasters } from "@/lib/masters";
 import { DONE_ORDER_STATUSES } from "@/lib/order-status";
 
 const REPEAT_WINDOW_DAYS = 10;
@@ -34,13 +34,22 @@ function toIsoDate(value: string | Date): string {
   return typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
 }
 
+/** "Not in the serviceable store" condition — undefined (no filtering) when no UIC
+ * team is currently flagged terminal, since there's nothing to exclude. Guards
+ * against `ne(uicToday, null)` (SQL `<> NULL` is always NULL, never true) the same
+ * way the isNull/ne pairing already guards against a NULL uicToday. */
+function notInStoreCondition(terminalUic: string | null): SQL | undefined {
+  if (!terminalUic) return undefined;
+  return or(isNull(orders.uicToday), ne(orders.uicToday, terminalUic));
+}
+
 export interface DashboardSummary {
   today: string;
   shift: "AM" | "PM" | "Overtime";
   totalOrders: number;
   /** Orders sitting in the Kitting/RPC serviceable store — finished, not active
    * work. Excluded from uicBreakdown and staleOrders since it's a terminal state,
-   * not a queue (see wc-uic-map.ts: TERMINAL_UIC). */
+   * not a queue (see terminalUic in lib/masters.ts). */
   inServiceableStore: number;
   statusBreakdown: Array<{ label: string; count: number }>;
   uicBreakdown: Array<{ label: string; count: number }>;
@@ -67,6 +76,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const today = todayIso();
   const shift = currentShift();
   const last = getPreviousShift(today, shift);
+  const { terminalUic } = await getMasters();
+  const notInStore = notInStoreCondition(terminalUic);
 
   const [
     totalOrdersResult,
@@ -84,10 +95,12 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     weeklyThroughput,
   ] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(orders).where(eq(orders.archived, false)),
-    db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(orders)
-      .where(and(eq(orders.archived, false), eq(orders.uicToday, TERMINAL_UIC))),
+    terminalUic
+      ? db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(orders)
+          .where(and(eq(orders.archived, false), eq(orders.uicToday, terminalUic)))
+      : Promise.resolve([{ n: 0 }]),
     db
       .select({ label: orders.status, n: sql<number>`count(*)::int` })
       .from(orders)
@@ -97,7 +110,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     db
       .select({ label: orders.uicToday, n: sql<number>`count(*)::int` })
       .from(orders)
-      .where(and(eq(orders.archived, false), or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC))))
+      .where(notInStore ? and(eq(orders.archived, false), notInStore) : eq(orders.archived, false))
       .groupBy(orders.uicToday)
       .orderBy(desc(sql`count(*)`)),
     db
@@ -119,8 +132,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
           or(isNull(orders.status), and(ne(orders.status, "Completed"), ne(orders.status, "Cancelled"))),
           // Already finished and sitting in the serviceable store — it got there
           // late, but it's not still "overdue" work needing a nudge onto the next
-          // Daily Menu (see TERMINAL_UIC).
-          or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC)),
+          // Daily Menu.
+          notInStore,
         ),
       )
       .orderBy(asc(orders.gate4Target))
@@ -155,8 +168,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .having(sql`count(distinct ${dailyMenuEntries.menuDate}) >= 3`)
       .orderBy(desc(sql`count(distinct ${dailyMenuEntries.menuDate})`))
       .limit(10),
-    getStaleOrders(),
-    getTurnaroundMetrics(today),
+    getStaleOrders(notInStore),
+    getTurnaroundMetrics(today, notInStore),
     getWeeklyThroughput(today),
   ]);
 
@@ -188,7 +201,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
  * untouched this long usually means it's blocked on something outside the
  * shift-report workflow (material, decision, tooling), but idle-in-storage is the
  * expected end state, not a problem. */
-async function getStaleOrders() {
+async function getStaleOrders(notInStore: SQL | undefined) {
   const touchedRows = await db
     .selectDistinct({ orderNumber: shiftReportEntries.orderNumber })
     .from(shiftReportEntries)
@@ -198,7 +211,7 @@ async function getStaleOrders() {
   const activeOrders = await db
     .select({ orderNumber: orders.orderNumber, description: orders.description, uicToday: orders.uicToday, status: orders.status })
     .from(orders)
-    .where(and(eq(orders.archived, false), or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC))))
+    .where(and(eq(orders.archived, false), notInStore))
     .limit(500);
 
   return activeOrders
@@ -216,7 +229,7 @@ const AGING_BUCKETS = [
  * still open. completedAt only started being stamped once the Kitting/RPC
  * terminal-state rule shipped (see wc-uic-map.ts), so the TAT sample naturally grows
  * over time rather than being backfilled with guessed dates — see schema.ts. */
-async function getTurnaroundMetrics(today: string) {
+async function getTurnaroundMetrics(today: string, notInStore: SQL | undefined) {
   const [completedRows, openRows] = await Promise.all([
     db
       .select({ dateIn: orders.dateIn, completedAt: orders.completedAt, engineType: orders.engineType })
@@ -228,7 +241,7 @@ async function getTurnaroundMetrics(today: string) {
       .where(
         and(
           eq(orders.archived, false),
-          or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC)),
+          notInStore,
           or(isNull(orders.status), and(ne(orders.status, "Completed"), ne(orders.status, "Cancelled"))),
         ),
       ),

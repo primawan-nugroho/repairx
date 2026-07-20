@@ -35,12 +35,14 @@ export function PlannerTable({
   currentSearch,
   filterOptions,
   rpcColorMap,
+  engineTypes,
 }: {
   data: RepairPlannerEntry[];
   canEdit: boolean;
   currentSearch: Record<string, string | undefined>;
   filterOptions: FilterOptions;
   rpcColorMap: Record<string, string>;
+  engineTypes: string[];
 }) {
   const [editingEntry, setEditingEntry] = useState<RepairPlannerEntry | null>(null);
 
@@ -299,6 +301,7 @@ export function PlannerTable({
             rpc1: filterOptions.rpc1,
             rpc2: filterOptions.rpc2,
           }}
+          engineTypes={engineTypes}
         />
       )}
     </>

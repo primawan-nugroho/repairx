@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDistinctRepairPlannerValues, getRepairPlannerEntries, REPAIR_PLANNER_PAGE_SIZE } from "@/lib/repair-planner";
+import { getMasters } from "@/lib/masters";
 import { buildPersonColorMap } from "@/lib/utils";
 import { PlannerTable } from "./planner-table";
 import { AddEntryButton } from "./add-entry-button";
@@ -46,6 +47,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
     gate4Options,
     projectOptions,
     remarkOptions,
+    masters,
   ] = await Promise.all([
     getRepairPlannerEntries({
       q: params.q,
@@ -75,6 +77,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
     getDistinctRepairPlannerValues("gate4Status"),
     getDistinctRepairPlannerValues("projectStatus"),
     getDistinctRepairPlannerValues("remark"),
+    getMasters(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / REPAIR_PLANNER_PAGE_SIZE));
@@ -120,6 +123,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
                 rpc1: rpc1Options,
                 rpc2: rpc2Options,
               }}
+              engineTypes={masters.engineTypes}
             />
           )}
         </div>
@@ -168,6 +172,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
           projectStatus: projectOptions,
           remark: remarkOptions,
         }}
+        engineTypes={masters.engineTypes}
       />
 
       <div className="flex items-center justify-between">

@@ -1,31 +1,9 @@
-// Work center → UIC mapping — the authoritative rule for which team owns which
-// work center. The database's uic_today column is DERIVED from this mapping (via
-// mwc_today), not independently entered — see CLAUDE.md domain model notes.
-//
-// This lives in code for now; it moves into an editable masters table in a later
-// phase (see DESIGN.md Masters placeholder).
-export const WC_TO_UIC: Record<string, string> = {
-  ADU: "TVU-1",
-  ADE: "TVP-1/2",
-  BL: "TVU-1",
-  CC: "TVP-4",
-  PT: "TCS-3",
-  EP: "TCS-3",
-  LB: "TCY-3",
-  MC: "TCS-3",
-  SP: "TCS-3",
-  MN: "TVU-3",
-  TS: "TVU-3",
-  MR: "TVU-4",
-  WD: "TVU-4",
-  HT: "TVU-4",
-  ND: "TVP-4",
-  BR: "TVP-4",
-  BC: "TVP-4",
-  "SERV/Finish": "Kitting/RPC",
-  W303: "TCS",
-  WBLG: "TCW",
-};
+// Work center -> UIC derivation and UIC/status auto-derivation rules. The mapping
+// itself now lives in the DB (engine_types/uic_teams/work_centers tables, admin-
+// editable from /masters — see lib/masters.ts's getMasters()) rather than being
+// hardcoded here. These functions take that mapping as an explicit parameter so
+// client components can derive synchronously as the user types, using the masters
+// snapshot their page already loaded server-side.
 
 function normalizeWorkCenter(workCenter: string | null | undefined): string | null {
   if (!workCenter) return null;
@@ -33,55 +11,40 @@ function normalizeWorkCenter(workCenter: string | null | undefined): string | nu
   return trimmed || null;
 }
 
-/** Derives the owning UIC for a work center per the mapping rule. Returns null for
- * blank or unmapped work centers — callers should fall back to a neutral display,
- * never guess. */
-export function deriveUic(workCenter: string | null | undefined): string | null {
+/** Derives the owning UIC for a work center per the current mapping. Returns null
+ * for blank or unmapped work centers — callers should fall back to a neutral
+ * display, never guess. */
+export function deriveUic(workCenter: string | null | undefined, workCenterToUic: Record<string, string>): string | null {
   const wc = normalizeWorkCenter(workCenter);
   if (!wc) return null;
-  return WC_TO_UIC[wc] ?? null;
+  return workCenterToUic[wc] ?? null;
 }
 
-// One color slug per distinct UIC in the mapping (10 total). Work centers inherit
-// their UIC's color; UICs not in the mapping (e.g. legacy TVU-2, TBR data predating
-// this rule) fall back to "unmapped" gray.
-const UIC_COLOR_SLUGS: Record<string, string> = {
-  "TVU-1": "uic-a",
-  "TVP-1/2": "uic-b",
-  "TVP-4": "uic-c",
-  "TCS-3": "uic-d",
-  "TCY-3": "uic-e",
-  "TVU-3": "uic-f",
-  "TVU-4": "uic-g",
-  "Kitting/RPC": "uic-h",
-  TCS: "uic-i",
-  TCW: "uic-j",
-};
-
 /** Color slug for a known UIC value, or "unmapped" (neutral gray) otherwise. */
-export function uicColorKey(uic: string | null | undefined): string {
+export function uicColorKey(uic: string | null | undefined, uicColorSlugs: Record<string, string>): string {
   if (!uic) return "unmapped";
-  return UIC_COLOR_SLUGS[uic.trim()] ?? "unmapped";
+  return uicColorSlugs[uic.trim()] ?? "unmapped";
 }
 
 /** Color slug for a work center, derived via its mapped UIC. */
-export function wcColorKey(workCenter: string | null | undefined): string {
-  return uicColorKey(deriveUic(workCenter));
+export function wcColorKey(
+  workCenter: string | null | undefined,
+  workCenterToUic: Record<string, string>,
+  uicColorSlugs: Record<string, string>,
+): string {
+  return uicColorKey(deriveUic(workCenter, workCenterToUic), uicColorSlugs);
 }
-
-export const ALL_MAPPED_UICS = Array.from(new Set(Object.values(WC_TO_UIC))).sort();
-export const ALL_MAPPED_WORK_CENTERS = Object.keys(WC_TO_UIC).sort();
-
-// Kitting/RPC is the one UIC that doesn't mean "active work" — it's the serviceable
-// store: the repair is finished and the part is sitting there waiting for pickup or
-// shipment. Dashboard views that measure production workload or flag stale/untouched
-// orders need to treat it as a terminal state, not a queue.
-export const TERMINAL_UIC = "Kitting/RPC";
 
 /** Status auto-derives the same way UIC does (see deriveUic) — reaching the
  * serviceable store means the repair is done, so Status becomes "Ready" regardless
- * of what was there before. Everywhere else, the caller's own status is kept as-is. */
-export function deriveStatus(uic: string | null, fallback: string | null | undefined): string | null {
-  if (uic === TERMINAL_UIC) return "Ready";
+ * of what was there before. Everywhere else, the caller's own status is kept as-is.
+ * `terminalUic` is null when no UIC team is currently flagged terminal (see
+ * getMasters()), in which case nothing ever auto-derives to "Ready". */
+export function deriveStatus(
+  uic: string | null,
+  fallback: string | null | undefined,
+  terminalUic: string | null,
+): string | null {
+  if (terminalUic && uic === terminalUic) return "Ready";
   return fallback ?? null;
 }

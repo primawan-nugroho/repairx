@@ -13,7 +13,7 @@ export async function getCachedInsight(insightDate: string, shift: string) {
   return row ?? null;
 }
 
-function buildPrompt(summary: DashboardSummary): string {
+function buildPrompt(summary: DashboardSummary, terminalUic: string | null): string {
   const statusLines = summary.statusBreakdown.map((s) => `${s.label}: ${s.count}`).join(", ");
   const uicLines = summary.uicBreakdown.map((u) => `${u.label}: ${u.count}`).join(", ");
   const overdueLines = summary.overdueOrders
@@ -24,12 +24,13 @@ function buildPrompt(summary: DashboardSummary): string {
     "none";
   const staleLines =
     summary.staleOrders.map((o) => `${o.orderNumber} (UIC ${o.uicToday ?? "unassigned"})`).join("; ") || "none";
+  const terminalLabel = terminalUic ?? "the serviceable-store team";
 
   return `Shift context: ${summary.shift} shift on ${formatDate(summary.today)}.
 
-Orders open: ${summary.totalOrders} total, of which ${summary.inServiceableStore} are in the Kitting/RPC serviceable store — meaning the repair is already FINISHED and the part is just awaiting pickup/shipment. Kitting/RPC is not active work and must never be described as a bottleneck, backlog, or workload; it is excluded from the UIC breakdown below.
+Orders open: ${summary.totalOrders} total, of which ${summary.inServiceableStore} are in the ${terminalLabel} serviceable store — meaning the repair is already FINISHED and the part is just awaiting pickup/shipment. ${terminalLabel} is not active work and must never be described as a bottleneck, backlog, or workload; it is excluded from the UIC breakdown below.
 By status: ${statusLines || "none"}.
-By UIC (active work only, Kitting/RPC excluded): ${uicLines || "none"}.
+By UIC (active work only, ${terminalLabel} excluded): ${uicLines || "none"}.
 
 Orders past their Gate 4 target date (overdue): ${overdueLines}.
 
@@ -91,8 +92,8 @@ async function callGroq(prompt: string): Promise<string> {
   return content;
 }
 
-export async function generateAndCacheInsight(summary: DashboardSummary): Promise<string> {
-  const content = await callGroq(buildPrompt(summary));
+export async function generateAndCacheInsight(summary: DashboardSummary, terminalUic: string | null): Promise<string> {
+  const content = await callGroq(buildPrompt(summary, terminalUic));
 
   await db
     .insert(aiInsights)

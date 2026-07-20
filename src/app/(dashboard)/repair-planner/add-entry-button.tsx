@@ -11,7 +11,13 @@ interface DropdownOptions {
   rpc2: string[];
 }
 
-export function AddEntryButton({ options }: { options: DropdownOptions }) {
+export function AddEntryButton({
+  options,
+  engineTypes,
+}: {
+  options: DropdownOptions;
+  engineTypes: string[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,7 +28,9 @@ export function AddEntryButton({ options }: { options: DropdownOptions }) {
       >
         Add entry
       </button>
-      {open && <PlannerEntryDialog canEdit onClose={() => setOpen(false)} options={options} />}
+      {open && (
+        <PlannerEntryDialog canEdit onClose={() => setOpen(false)} options={options} engineTypes={engineTypes} />
+      )}
     </>
   );
 }

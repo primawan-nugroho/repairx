@@ -14,7 +14,15 @@ interface OrderLookup {
   mwcToday: string | null;
 }
 
-export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shift: string }) {
+export function ShiftEntryForm({
+  reportDate,
+  shift,
+  workCenterToUic,
+}: {
+  reportDate: string;
+  shift: string;
+  workCenterToUic: Record<string, string>;
+}) {
   const { showToast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
@@ -22,7 +30,7 @@ export function ShiftEntryForm({ reportDate, shift }: { reportDate: string; shif
   const [workCenter, setWorkCenter] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const derivedUic = deriveUic(workCenter);
+  const derivedUic = deriveUic(workCenter, workCenterToUic);
 
   async function handleOrderBlur(orderNumber: string) {
     if (!orderNumber) {
