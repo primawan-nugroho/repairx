@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/db/schema";
 import { deriveStatus, deriveUic, TERMINAL_UIC } from "@/lib/wc-uic-map";
@@ -92,13 +93,23 @@ export function OrderEditDialog({ order, canEdit, onClose }: OrderEditDialogProp
           <h2 className="data-mono text-base font-semibold text-text-primary">
             {isNew ? "Add order" : `Order ${order!.orderNumber}`}
           </h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-3">
+            {!isNew && (
+              <Link
+                href={`/orders/${encodeURIComponent(order!.orderNumber)}`}
+                className="text-xs font-medium text-accent hover:underline"
+              >
+                View history
+              </Link>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <form

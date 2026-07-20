@@ -16,6 +16,11 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+// Lowercase status values that mean "no longer active work" — used wherever a query
+// needs to exclude finished/dead orders from a workload or aging signal (Dashboard
+// stale-orders list, aging buckets).
+export const DONE_ORDER_STATUSES = ["completed", "cancelled"];
+
 export function isCanonicalOrderStatus(value: string | null | undefined): value is OrderStatus {
   return !!value && (ORDER_STATUSES as readonly string[]).includes(value);
 }

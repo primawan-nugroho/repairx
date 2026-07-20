@@ -48,6 +48,14 @@ export const orders = pgTable("orders", {
   remark: text("remark"),
   location: varchar("location", { length: 128 }),
   archived: boolean("archived").notNull().default(false),
+  // Stamped automatically the moment the order first reaches the Kitting/RPC
+  // serviceable store (see deriveStatus/TERMINAL_UIC in wc-uic-map.ts) and cleared if
+  // it ever moves back out — the source for turnaround-time metrics. Never
+  // backfilled for orders that were already in the store before this column existed,
+  // since we have no record of when that actually happened; fabricating a date would
+  // corrupt the TAT average, so those rows simply stay excluded until they leave and
+  // re-enter Kitting/RPC (which stamps it for real).
+  completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

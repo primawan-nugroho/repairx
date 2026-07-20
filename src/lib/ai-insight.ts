@@ -43,6 +43,10 @@ Orders with no shift-report activity in the last 7 days (excluding completed/can
 
 Internal Repair Planner: ${summary.plannerWip} of ${summary.plannerTotal} jobs still in progress.
 
+Average turnaround time (date in to reaching the serviceable store): ${
+    summary.tat.avgDays !== null ? `${summary.tat.avgDays} days (based on ${summary.tat.sampleSize} orders)` : "not enough data yet"
+  }.
+
 Write a shift-handover briefing for a production-control supervisor in 4-6 sentences: what moved, what's stalled, which UIC/work team is under the most load, and what should be prioritized on the next shift's Daily Menu. Then on a new line starting exactly with "Bottleneck: " give one specific, single-sentence callout using only the numbers above. Do not invent order numbers, dates, or facts not listed above. Do not use markdown formatting.`;
 }
 

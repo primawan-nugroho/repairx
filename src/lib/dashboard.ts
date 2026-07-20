@@ -1,14 +1,15 @@
-import { and, asc, desc, eq, gt, gte, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, shiftReportEntries, dailyMenuEntries, repairPlannerEntries } from "@/db/schema";
 import { getPreviousShift } from "@/lib/daily-menu";
 import { summarize } from "@/lib/shift-report";
 import { currentShift } from "@/lib/shift";
 import { TERMINAL_UIC } from "@/lib/wc-uic-map";
+import { DONE_ORDER_STATUSES } from "@/lib/order-status";
 
-const DONE_STATUSES = ["completed", "cancelled"];
 const REPEAT_WINDOW_DAYS = 10;
 const STALE_WINDOW_DAYS = 7;
+const THROUGHPUT_WEEKS = 8;
 
 function todayIso() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
@@ -18,6 +19,19 @@ function daysAgoIso(days: number) {
   const d = new Date(`${todayIso()}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
+}
+
+/** Whole days between two day-precision ISO dates (or a timestamp, sliced down to
+ * its date) — used for both order aging (dateIn -> today) and turnaround time
+ * (dateIn -> completedAt). */
+function daysBetweenIso(startIso: string, endIso: string): number {
+  const start = new Date(`${startIso}T00:00:00Z`).getTime();
+  const end = new Date(`${endIso}T00:00:00Z`).getTime();
+  return Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+}
+
+function toIsoDate(value: string | Date): string {
+  return typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
 }
 
 export interface DashboardSummary {
@@ -37,6 +51,13 @@ export interface DashboardSummary {
   plannerWip: number;
   repeatOrders: Array<{ orderNumber: string; menuDays: number }>;
   staleOrders: Array<{ orderNumber: string; description: string | null; uicToday: string | null }>;
+  /** Average days from dateIn to completedAt across every order that has reached
+   * Kitting/RPC since that column started being stamped — see schema.ts. sampleSize
+   * lets the UI caveat a still-small sample rather than presenting it as settled. */
+  tat: { avgDays: number | null; sampleSize: number };
+  tatByEngineType: Array<{ label: string; avgDays: number; sampleSize: number }>;
+  agingBuckets: Array<{ label: string; count: number }>;
+  weeklyThroughput: Array<{ weekLabel: string; intake: number; completed: number }>;
 }
 
 /** Every number the Dashboard (and the AI insight prompt) is built from — one place
@@ -59,6 +80,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     plannerClosedResult,
     repeatOrders,
     staleOrders,
+    turnaround,
+    weeklyThroughput,
   ] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(orders).where(eq(orders.archived, false)),
     db
@@ -94,6 +117,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
           gt(orders.gate4Target, "2000-01-01"),
           lt(orders.gate4Target, today),
           or(isNull(orders.status), and(ne(orders.status, "Completed"), ne(orders.status, "Cancelled"))),
+          // Already finished and sitting in the serviceable store — it got there
+          // late, but it's not still "overdue" work needing a nudge onto the next
+          // Daily Menu (see TERMINAL_UIC).
+          or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC)),
         ),
       )
       .orderBy(asc(orders.gate4Target))
@@ -129,6 +156,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .orderBy(desc(sql`count(distinct ${dailyMenuEntries.menuDate})`))
       .limit(10),
     getStaleOrders(),
+    getTurnaroundMetrics(today),
+    getWeeklyThroughput(today),
   ]);
 
   const summary = summarize(lastShiftEntries);
@@ -147,6 +176,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     plannerWip: (plannerTotalResult[0]?.n ?? 0) - (plannerClosedResult[0]?.n ?? 0),
     repeatOrders,
     staleOrders,
+    tat: turnaround.tat,
+    tatByEngineType: turnaround.tatByEngineType,
+    agingBuckets: turnaround.agingBuckets,
+    weeklyThroughput,
   };
 }
 
@@ -169,6 +202,119 @@ async function getStaleOrders() {
     .limit(500);
 
   return activeOrders
-    .filter((o) => !touched.has(o.orderNumber) && !DONE_STATUSES.includes((o.status ?? "").toLowerCase()))
+    .filter((o) => !touched.has(o.orderNumber) && !DONE_ORDER_STATUSES.includes((o.status ?? "").toLowerCase()))
     .slice(0, 10);
+}
+
+const AGING_BUCKETS = [
+  { label: "0-30d", max: 30 },
+  { label: "31-90d", max: 90 },
+  { label: "90d+", max: Infinity },
+] as const;
+
+/** Turnaround time (dateIn -> completedAt) and an intake-age breakdown of orders
+ * still open. completedAt only started being stamped once the Kitting/RPC
+ * terminal-state rule shipped (see wc-uic-map.ts), so the TAT sample naturally grows
+ * over time rather than being backfilled with guessed dates — see schema.ts. */
+async function getTurnaroundMetrics(today: string) {
+  const [completedRows, openRows] = await Promise.all([
+    db
+      .select({ dateIn: orders.dateIn, completedAt: orders.completedAt, engineType: orders.engineType })
+      .from(orders)
+      .where(and(eq(orders.archived, false), isNotNull(orders.completedAt), isNotNull(orders.dateIn))),
+    db
+      .select({ dateIn: orders.dateIn })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.archived, false),
+          or(isNull(orders.uicToday), ne(orders.uicToday, TERMINAL_UIC)),
+          or(isNull(orders.status), and(ne(orders.status, "Completed"), ne(orders.status, "Cancelled"))),
+        ),
+      ),
+  ]);
+
+  const tatDays = completedRows.map((r) => daysBetweenIso(r.dateIn!, toIsoDate(r.completedAt!)));
+  const avgTat = tatDays.length > 0 ? Math.round(tatDays.reduce((a, b) => a + b, 0) / tatDays.length) : null;
+
+  const byEngineType = new Map<string, number[]>();
+  for (const r of completedRows) {
+    const key = r.engineType || "Unknown";
+    const list = byEngineType.get(key) ?? [];
+    list.push(daysBetweenIso(r.dateIn!, toIsoDate(r.completedAt!)));
+    byEngineType.set(key, list);
+  }
+  const tatByEngineType = Array.from(byEngineType.entries())
+    .map(([label, days]) => ({
+      label,
+      avgDays: Math.round(days.reduce((a, b) => a + b, 0) / days.length),
+      sampleSize: days.length,
+    }))
+    .sort((a, b) => b.avgDays - a.avgDays)
+    .slice(0, 8);
+
+  const agingBuckets: Array<{ label: string; count: number }> = AGING_BUCKETS.map((b) => ({ label: b.label, count: 0 }));
+  let unknownAge = 0;
+  for (const r of openRows) {
+    if (!r.dateIn) {
+      unknownAge++;
+      continue;
+    }
+    const age = daysBetweenIso(r.dateIn, today);
+    const bucketIndex = AGING_BUCKETS.findIndex((b) => age <= b.max);
+    const bucket = agingBuckets[bucketIndex === -1 ? agingBuckets.length - 1 : bucketIndex];
+    if (bucket) bucket.count += 1;
+  }
+  if (unknownAge > 0) agingBuckets.push({ label: "Unknown intake", count: unknownAge });
+
+  return {
+    tat: { avgDays: avgTat, sampleSize: tatDays.length },
+    tatByEngineType,
+    agingBuckets,
+  };
+}
+
+/** Rolling weekly intake (by dateIn) vs. completions (by completedAt) for the last
+ * THROUGHPUT_WEEKS weeks — a coarse but cheap "is the backlog growing or shrinking"
+ * signal. Bucketed in JS from a bounded window rather than SQL date_trunc, since the
+ * row count in that window is always small. */
+async function getWeeklyThroughput(today: string) {
+  const windowStart = daysAgoIso(THROUGHPUT_WEEKS * 7);
+  const windowStartDate = new Date(`${windowStart}T00:00:00Z`);
+
+  const [intakeRows, completedRows] = await Promise.all([
+    db
+      .select({ dateIn: orders.dateIn })
+      .from(orders)
+      .where(and(eq(orders.archived, false), gte(orders.dateIn, windowStart))),
+    db
+      .select({ completedAt: orders.completedAt })
+      .from(orders)
+      .where(and(eq(orders.archived, false), gte(orders.completedAt, windowStartDate))),
+  ]);
+
+  const weeks = Array.from({ length: THROUGHPUT_WEEKS }, (_, i) => {
+    const weeksAgo = THROUGHPUT_WEEKS - 1 - i;
+    const start = daysAgoIso(weeksAgo * 7 + 6);
+    return { weekLabel: start, intake: 0, completed: 0 };
+  });
+
+  function bucketFor(iso: string) {
+    const age = daysBetweenIso(iso, today);
+    const index = THROUGHPUT_WEEKS - 1 - Math.floor(age / 7);
+    return weeks[index];
+  }
+
+  for (const r of intakeRows) {
+    if (!r.dateIn) continue;
+    const b = bucketFor(r.dateIn);
+    if (b) b.intake += 1;
+  }
+  for (const r of completedRows) {
+    if (!r.completedAt) continue;
+    const b = bucketFor(toIsoDate(r.completedAt));
+    if (b) b.completed += 1;
+  }
+
+  return weeks;
 }

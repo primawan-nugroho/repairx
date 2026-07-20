@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getCachedInsight } from "@/lib/ai-insight";
 import { formatDate } from "@/lib/utils";
-import { StatusBarChart, UicBarChart } from "./dashboard-charts";
+import { StatusBarChart, UicBarChart, MetricBarList, ThroughputChart } from "./dashboard-charts";
 import { AiInsightCard } from "./ai-insight-card";
 
 export default async function DashboardPage() {
@@ -54,6 +54,45 @@ export default async function DashboardPage() {
           <UicBarChart rows={summary.uicBreakdown} />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="bg-surface-solid flex flex-col gap-1 rounded-lg border border-border p-5">
+          <h2 className="text-sm font-semibold text-text-primary">Average turnaround time</h2>
+          <p className="text-xs text-text-tertiary">Date in → serviceable store, since this metric started tracking</p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="data-mono text-3xl font-semibold text-text-primary">
+              {summary.tat.avgDays ?? "-"}
+            </span>
+            <span className="text-sm text-text-secondary">days</span>
+          </div>
+          <p className="mt-1 text-xs text-text-tertiary">
+            {summary.tat.sampleSize === 0
+              ? "No orders have reached the store since tracking started."
+              : `Based on ${summary.tat.sampleSize} completed order${summary.tat.sampleSize === 1 ? "" : "s"}.`}
+          </p>
+        </div>
+        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
+          <h2 className="text-sm font-semibold text-text-primary">Open order age</h2>
+          <MetricBarList
+            rows={summary.agingBuckets.map((b) => ({ label: b.label, value: b.count }))}
+            formatValue={(v) => String(v)}
+          />
+        </div>
+        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
+          <h2 className="text-sm font-semibold text-text-primary">Weekly intake vs. completed</h2>
+          <ThroughputChart weeks={summary.weeklyThroughput} />
+        </div>
+      </div>
+
+      {summary.tatByEngineType.length > 0 && (
+        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
+          <h2 className="text-sm font-semibold text-text-primary">Turnaround time by engine type</h2>
+          <MetricBarList
+            rows={summary.tatByEngineType.map((t) => ({ label: t.label, value: t.avgDays, sublabel: `(n=${t.sampleSize})` }))}
+            formatValue={(v) => `${v}d`}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <AttentionList

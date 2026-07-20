@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   createColumnHelper,
   flexRender,
@@ -60,12 +61,21 @@ export function OrdersTable({
           />,
         ),
       cell: (info) => (
-        <button
-          onClick={() => setEditingOrder(info.row.original)}
-          className="data-mono text-accent hover:underline"
-        >
-          {info.getValue()}
-        </button>
+        <span className="inline-flex items-center gap-1.5">
+          <button
+            onClick={() => setEditingOrder(info.row.original)}
+            className="data-mono text-accent hover:underline"
+          >
+            {info.getValue()}
+          </button>
+          <Link
+            href={`/orders/${encodeURIComponent(info.getValue())}`}
+            title="View history"
+            className="rounded border border-border px-1 text-[10px] font-medium text-text-tertiary hover:border-border-strong hover:text-text-secondary"
+          >
+            history
+          </Link>
+        </span>
       ),
     }),
     columnHelper.accessor("description", {

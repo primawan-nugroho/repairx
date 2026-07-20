@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { orders, repairPlannerEntries } from "@/db/schema";
 import { orderSchema } from "@/lib/validations";
-import { deriveStatus, deriveUic } from "@/lib/wc-uic-map";
+import { deriveStatus, deriveUic, TERMINAL_UIC } from "@/lib/wc-uic-map";
 import { isEngineType } from "@/lib/engine-types";
 import type { BulkOrderRow } from "@/lib/bulk-order-parse";
 
@@ -20,6 +20,19 @@ function parseOrderForm(formData: FormData) {
   // deriveStatus.
   const uicToday = deriveUic(parsed.mwcToday) ?? parsed.uicToday ?? null;
   return { ...parsed, uicToday, status: deriveStatus(uicToday, parsed.status) };
+}
+
+/** completedAt is the source for turnaround-time metrics — stamped the instant an
+ * order first reaches the serviceable store, kept stable across later unrelated
+ * edits (so re-saving the same order doesn't reset the clock), and cleared if the
+ * order is ever routed back out of Kitting/RPC (see TERMINAL_UIC in wc-uic-map.ts). */
+function computeCompletedAt(
+  newUic: string | null,
+  previous: { uicToday: string | null; completedAt: Date | null } | undefined,
+): Date | null {
+  if (newUic !== TERMINAL_UIC) return null;
+  if (previous?.uicToday === TERMINAL_UIC && previous.completedAt) return previous.completedAt;
+  return new Date();
 }
 
 async function requireEditor() {
@@ -40,30 +53,43 @@ export async function upsertOrder(formData: FormData) {
     // Order number is being renamed — check the new number isn't already taken by
     // a different order before moving the business key.
     const [existing] = await db
+      .select({ orderNumber: orders.orderNumber, uicToday: orders.uicToday, completedAt: orders.completedAt })
+      .from(orders)
+      .where(eq(orders.orderNumber, originalOrderNumber))
+      .limit(1);
+
+    const [taken] = await db
       .select({ orderNumber: orders.orderNumber })
       .from(orders)
       .where(eq(orders.orderNumber, values.orderNumber))
       .limit(1);
 
-    if (existing) {
+    if (taken) {
       throw new Error(`Order ${values.orderNumber} already exists.`);
     }
 
     await db
       .update(orders)
-      .set({ ...values, updatedAt: new Date() })
+      .set({ ...values, completedAt: computeCompletedAt(values.uicToday, existing), updatedAt: new Date() })
       .where(eq(orders.orderNumber, originalOrderNumber));
   } else {
+    const [existing] = await db
+      .select({ uicToday: orders.uicToday, completedAt: orders.completedAt })
+      .from(orders)
+      .where(eq(orders.orderNumber, values.orderNumber))
+      .limit(1);
+
     await db
       .insert(orders)
-      .values(values)
+      .values({ ...values, completedAt: computeCompletedAt(values.uicToday, existing) })
       .onConflictDoUpdate({
         target: orders.orderNumber,
-        set: { ...values, updatedAt: new Date() },
+        set: { ...values, completedAt: computeCompletedAt(values.uicToday, existing), updatedAt: new Date() },
       });
   }
 
   revalidatePath("/orders");
+  revalidatePath(`/orders/${encodeURIComponent(values.orderNumber)}`);
 }
 
 export async function createOrder(formData: FormData) {
@@ -84,7 +110,7 @@ export async function createOrder(formData: FormData) {
     throw new Error(`Order ${values.orderNumber} already exists.`);
   }
 
-  await db.insert(orders).values(values);
+  await db.insert(orders).values({ ...values, completedAt: computeCompletedAt(values.uicToday, undefined) });
 
   revalidatePath("/orders");
 }
@@ -162,6 +188,7 @@ export async function createOrdersBulk(rows: BulkOrderRow[]) {
       mwcToday: r.workCenter.trim().slice(0, 16) || null,
       uicToday,
       status: deriveStatus(uicToday, null),
+      completedAt: computeCompletedAt(uicToday, undefined),
       location: r.location.trim().slice(0, 128) || null,
       remark: r.remark.trim() || null,
     };
