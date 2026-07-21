@@ -65,12 +65,14 @@ const REORDERABLE_COLUMNS: Array<{ id: string; label: string }> = [
 // Pixel widths for the frozen block (select? + orderNumber + description +
 // serialNumber), in render order — fixed rather than content-sized so the sticky
 // left-offset of each frozen column stays stable across every row regardless of
-// content length. Description's inner clamp (below) is sized to fit inside its
-// 200px column net of padding.
+// content length. orderNumber is sized to its actual content (mono digits + the
+// history icon), not padded out further — the space that freed up is handed to
+// Description instead. Description's inner clamp (below) is sized to fit inside
+// its column net of padding.
 const FROZEN_WIDTHS: Record<string, number> = {
   select: 36,
-  orderNumber: 168,
-  description: 200,
+  orderNumber: 140,
+  description: 230,
   serialNumber: 120,
 };
 
@@ -182,7 +184,18 @@ export function OrdersTable({
           <ColumnFilter basePath="/orders" label="Description" paramKey="descriptionLike" currentSearch={currentSearch} type="text" />,
           "description",
         ),
-      cell: (info) => <span className="line-clamp-1 max-w-[170px]">{info.getValue() || "-"}</span>,
+      cell: (info) => {
+        const value = info.getValue();
+        return (
+          // Still truncated at 200px net of padding (can't show unlimited text in a
+          // fixed-width frozen column), but the native title attribute surfaces the
+          // full text as a hover tooltip — the standard, zero-new-dependency way to
+          // let long descriptions be read in full without widening the column.
+          <span className="line-clamp-1 max-w-[200px]" title={value || undefined}>
+            {value || "-"}
+          </span>
+        );
+      },
     }),
     serialNumber: columnHelper.accessor("serialNumber", {
       header: () =>
@@ -250,7 +263,14 @@ export function OrdersTable({
           "Remark",
           <ColumnFilter basePath="/orders" label="Remark" paramKey="remarkLike" currentSearch={currentSearch} type="text" />,
         ),
-      cell: (info) => <span className="line-clamp-1 max-w-[220px]">{info.getValue() || "-"}</span>,
+      cell: (info) => {
+        const value = info.getValue();
+        return (
+          <span className="line-clamp-1 max-w-[220px]" title={value || undefined}>
+            {value || "-"}
+          </span>
+        );
+      },
     }),
   } as const;
 

@@ -31,14 +31,17 @@
   --status-urgent: #d70015;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
 
-  /* Opaque, accent-tinted surface for sticky/frozen table columns (Orders table) —
-     DESIGN.md's Level-2 rule (opaque, not vibrancy, for anything sitting over
-     scrolling content) plus a faint blue wash so the frozen block reads as
-     deliberately pinned rather than a rendering glitch. Never translucent: a
-     frozen column sits over the columns scrolling underneath it, so --surface's
-     blur/alpha would let them bleed through. */
-  --frozen-surface: #ebf4fd;
-  --frozen-surface-hover: #dbebfb;
+  /* Opaque, neutral-elevated surface for sticky/frozen table columns (Orders
+     table) — DESIGN.md's Level-2 rule (opaque, not vibrancy, for anything
+     sitting over scrolling content). Deliberately NOT accent-blue: --accent is
+     already this app's color for links/actions/focus, so tinting a purely
+     structural affordance (a pinned column) with it read as a selection state
+     rather than "this panel is raised." A neutral gray step between --canvas
+     and --surface-solid reads as elevation without borrowing that meaning.
+     Never translucent: a frozen column sits over the columns scrolling
+     underneath it, so --surface's blur/alpha would let them bleed through. */
+  --frozen-surface: #eef0f2;
+  --frozen-surface-hover: #e3e6e9;
 
   /* Categorical UIC palette — one hue per unit-in-charge team (see wc-uic-map.ts).
      Work centers inherit their mapped UIC's hue. "unmapped" is the gray fallback
@@ -93,10 +96,10 @@
   --status-urgent: #ff453a;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
 
-  /* See the light-theme block's comment — same opaque accent-tinted frozen-column
-     surface, tuned for the dark canvas. */
-  --frozen-surface: #2e3947;
-  --frozen-surface-hover: #304258;
+  /* See the light-theme block's comment — same opaque, neutral-elevated
+     frozen-column surface, tuned for the dark canvas. */
+  --frozen-surface: #38383b;
+  --frozen-surface-hover: #424245;
 
   --uic-a: #a78bfa;
   --uic-b: #fb923c;
