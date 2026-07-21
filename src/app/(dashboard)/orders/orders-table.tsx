@@ -556,11 +556,22 @@ export function OrdersTable({
                   return (
                     <th
                       key={header.id}
-                      style={isFrozen ? { left: frozenLeft[id], width: FROZEN_WIDTHS[id], minWidth: FROZEN_WIDTHS[id] } : undefined}
+                      style={
+                        isFrozen
+                          ? {
+                              left: frozenLeft[id],
+                              width: FROZEN_WIDTHS[id],
+                              minWidth: FROZEN_WIDTHS[id],
+                              // Tailwind has no border-r-{token} utility (confirmed: no rule is
+                              // generated for it) — inline style is the reliable way to apply a
+                              // themed border-right color here.
+                              ...(id === lastFrozenId ? { borderRight: "1px solid var(--border-strong)" } : {}),
+                            }
+                          : undefined
+                      }
                       className={cn(
                         "whitespace-nowrap border-b border-border px-3 py-2.5 text-left text-xs font-medium text-text-secondary",
                         isFrozen ? "sticky z-20 bg-frozen-surface" : "bg-surface",
-                        id === lastFrozenId && "shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]",
                       )}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -585,16 +596,29 @@ export function OrdersTable({
                   return (
                     <td
                       key={cell.id}
-                      style={isFrozen ? { left: frozenLeft[id], width: FROZEN_WIDTHS[id], minWidth: FROZEN_WIDTHS[id] } : undefined}
+                      style={
+                        isFrozen
+                          ? {
+                              left: frozenLeft[id],
+                              width: FROZEN_WIDTHS[id],
+                              minWidth: FROZEN_WIDTHS[id],
+                              ...(id === lastFrozenId ? { borderRight: "1px solid var(--border-strong)" } : {}),
+                            }
+                          : undefined
+                      }
                       className={cn(
                         "whitespace-nowrap px-3 align-middle",
                         cellPad,
-                        // Frozen cells stay a single opaque, accent-tinted color regardless
-                        // of row parity — no zebra stripe inside the pinned block, and never
-                        // the translucent --surface (which would let scrolled-under columns
-                        // bleed through), per DESIGN.md's opaque-over-content rule.
-                        isFrozen && "sticky z-[1] bg-frozen-surface group-hover:bg-frozen-surface-hover",
-                        id === lastFrozenId && "shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]",
+                        // Frozen cells stay opaque (never the translucent --surface, which
+                        // would let scrolled-under columns bleed through — DESIGN.md's
+                        // opaque-over-content rule) but still reproduce the odd-row zebra
+                        // stripe at the same intensity step (-alt) so a striped row doesn't
+                        // visually split in half at the freeze line.
+                        isFrozen &&
+                          cn(
+                            "sticky z-[1] group-hover:bg-frozen-surface-hover",
+                            rowIndex % 2 === 1 ? "bg-frozen-surface-alt" : "bg-frozen-surface",
+                          ),
                       )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

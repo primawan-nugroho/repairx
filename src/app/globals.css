@@ -39,9 +39,15 @@
      rather than "this panel is raised." A neutral gray step between --canvas
      and --surface-solid reads as elevation without borrowing that meaning.
      Never translucent: a frozen column sits over the columns scrolling
-     underneath it, so --surface's blur/alpha would let them bleed through. */
+     underneath it, so --surface's blur/alpha would let them bleed through.
+     Three steps (base/alt/hover) rather than two: -alt reproduces the
+     scrollable columns' odd-row zebra stripe at the same opaque intensity
+     step, so a striped row doesn't visually split in half at the freeze
+     line; -hover stays reserved for the actual hover state so hovering an
+     odd (already-alt) row still visibly changes. */
   --frozen-surface: #eef0f2;
-  --frozen-surface-hover: #e3e6e9;
+  --frozen-surface-alt: #e6e9eb;
+  --frozen-surface-hover: #dde1e4;
 
   /* Categorical UIC palette — one hue per unit-in-charge team (see wc-uic-map.ts).
      Work centers inherit their mapped UIC's hue. "unmapped" is the gray fallback
@@ -99,7 +105,8 @@
   /* See the light-theme block's comment — same opaque, neutral-elevated
      frozen-column surface, tuned for the dark canvas. */
   --frozen-surface: #38383b;
-  --frozen-surface-hover: #424245;
+  --frozen-surface-alt: #403f43;
+  --frozen-surface-hover: #48474b;
 
   --uic-a: #a78bfa;
   --uic-b: #fb923c;
@@ -136,6 +143,7 @@
   --color-accent: var(--accent);
   --color-accent-bg: var(--accent-bg);
   --color-frozen-surface: var(--frozen-surface);
+  --color-frozen-surface-alt: var(--frozen-surface-alt);
   --color-frozen-surface-hover: var(--frozen-surface-hover);
   --color-status-open: var(--status-open);
   --color-status-progress: var(--status-progress);
