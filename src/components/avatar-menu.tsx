@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { signOutAction } from "@/lib/account-actions";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 
@@ -19,60 +26,46 @@ export function AvatarMenu({
   name: string;
   role: string;
 }) {
-  const [open, setOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Account menu"
-        className="avatar-button h-8 w-8 overflow-hidden rounded-full border border-border"
-        dangerouslySetInnerHTML={{ __html: avatarSvg }}
-      />
-      <style jsx>{`
-        .avatar-button :global(svg) {
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label="Account menu"
+            className="avatar-button h-8 w-8 overflow-hidden rounded-full border border-border"
+            dangerouslySetInnerHTML={{ __html: avatarSvg }}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56 p-0">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium text-text-primary">{name}</p>
+            <p className="data-mono text-xs text-text-tertiary">{ROLE_LABELS[role] ?? role}</p>
+          </div>
+          <div className="p-1.5">
+            <DropdownMenuItem onSelect={() => setChangingPassword(true)}>Change password</DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <form action={signOutAction}>
+              <DropdownMenuItem asChild>
+                <button type="submit" className="w-full text-left">
+                  Sign out
+                </button>
+              </DropdownMenuItem>
+            </form>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <style jsx global>{`
+        .avatar-button svg {
           width: 100%;
           height: 100%;
           display: block;
         }
       `}</style>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
-            <div className="border-b border-border px-4 py-3">
-              <p className="text-sm font-medium text-text-primary">{name}</p>
-              <p className="data-mono text-xs text-text-tertiary">
-                {ROLE_LABELS[role] ?? role}
-              </p>
-            </div>
-            <div className="flex flex-col p-1.5">
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  setChangingPassword(true);
-                }}
-                className="rounded-md px-2.5 py-2 text-left text-sm text-text-primary hover:bg-surface"
-              >
-                Change password
-              </button>
-              <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="w-full rounded-md px-2.5 py-2 text-left text-sm text-text-primary hover:bg-surface"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
-
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
-    </div>
+    </>
   );
 }

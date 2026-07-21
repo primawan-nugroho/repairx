@@ -1,5 +1,6 @@
 "use client";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Order } from "@/db/schema";
 import type { OrderMasters } from "@/lib/masters";
 import { cn } from "@/lib/utils";
@@ -34,62 +35,51 @@ export function WorkCenterRoutingPopover({
     .filter(Boolean);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface-solid p-6 shadow-[var(--shadow-popover)]">
-        <div className="mb-1 flex items-center justify-between">
-          <h2 className="data-mono text-lg font-semibold text-text-primary">
-            {order.orderNumber}
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
-          >
-            ✕
-          </button>
-        </div>
-        <p className="mb-4 text-xs font-medium text-text-secondary">
-          MWC process tracking — current work center highlighted
-        </p>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="data-mono text-lg">{order.orderNumber}</DialogTitle>
+        </DialogHeader>
 
-        {steps.length === 0 ? (
-          <p className="text-sm text-text-secondary">No routing recorded for this order.</p>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {steps.map((step, i) => {
-              const isCurrent = order.mwcToday === step;
-              const colorKey = wcColorKey(step, masters.workCenterToUic, masters.uicColorSlugs);
-              return (
-                <div key={`${step}-${i}`} className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-sm font-medium",
-                      COLOR_CLASSES[colorKey],
-                      isCurrent && "ring-2 ring-current font-semibold",
-                    )}
-                  >
-                    {step}
-                  </span>
-                  {i < steps.length - 1 && <span className="text-text-tertiary">→</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="px-5 py-4">
+          <p className="mb-4 text-xs font-medium text-text-secondary">
+            MWC process tracking — current work center highlighted
+          </p>
 
-        {order.mwcRouting?.includes(order.mwcToday ?? "\0") &&
-          steps.filter((s) => s === order.mwcToday).length > 1 && (
-            <p className="mt-3 text-xs text-text-tertiary">
-              This work center repeats in the routing — every occurrence is highlighted since
-              the data doesn&rsquo;t record which pass is current.
-            </p>
+          {steps.length === 0 ? (
+            <p className="text-sm text-text-secondary">No routing recorded for this order.</p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {steps.map((step, i) => {
+                const isCurrent = order.mwcToday === step;
+                const colorKey = wcColorKey(step, masters.workCenterToUic, masters.uicColorSlugs);
+                return (
+                  <div key={`${step}-${i}`} className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-sm font-medium",
+                        COLOR_CLASSES[colorKey],
+                        isCurrent && "ring-2 ring-current font-semibold",
+                      )}
+                    >
+                      {step}
+                    </span>
+                    {i < steps.length - 1 && <span className="text-text-tertiary">→</span>}
+                  </div>
+                );
+              })}
+            </div>
           )}
-      </div>
-    </div>
+
+          {order.mwcRouting?.includes(order.mwcToday ?? "\0") &&
+            steps.filter((s) => s === order.mwcToday).length > 1 && (
+              <p className="mt-3 text-xs text-text-tertiary">
+                This work center repeats in the routing — every occurrence is highlighted since
+                the data doesn&rsquo;t record which pass is current.
+              </p>
+            )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -2,6 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { OrderMasters } from "@/lib/masters";
 import {
   BULK_ORDER_COLUMNS,
@@ -23,6 +26,9 @@ let nextKey = 1;
 function toRow(base: BulkOrderRow): Row {
   return { ...base, key: nextKey++, duplicate: false };
 }
+
+const CELL_CLASS =
+  "w-full min-w-[90px] rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-bg";
 
 export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMasters; onClose: () => void }) {
   const router = useRouter();
@@ -129,19 +135,11 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="flex max-h-[85vh] w-full max-w-5xl flex-col rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="text-base font-semibold text-text-primary">Add multiple orders</h2>
-          <button onClick={onClose} aria-label="Close" className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface">
-            ✕
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl gap-0 p-0">
+        <DialogHeader>
+          <DialogTitle>Add multiple orders</DialogTitle>
+        </DialogHeader>
 
         <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
           <div className="flex flex-col gap-1.5">
@@ -156,14 +154,9 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg"
             />
             <div>
-              <button
-                type="button"
-                onClick={handleParse}
-                disabled={!pasteText.trim()}
-                className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-text-primary disabled:opacity-50"
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={handleParse} disabled={!pasteText.trim()}>
                 Parse into rows below
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -194,7 +187,7 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
                           value={row.orderNumber}
                           onChange={(e) => updateRow(row.key, "orderNumber", e.target.value)}
                           onBlur={() => trimmedNumber && checkDuplicates([trimmedNumber])}
-                          className={`cell-input data-mono ${flagged ? "cell-input-error" : ""}`}
+                          className={cn(CELL_CLASS, "data-mono", flagged && "border-status-urgent")}
                           placeholder="Required"
                         />
                         {flagged && <span className="text-[10px] text-status-urgent">already exists</span>}
@@ -203,21 +196,21 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
                         <input
                           value={row.description}
                           onChange={(e) => updateRow(row.key, "description", e.target.value)}
-                          className="cell-input"
+                          className={CELL_CLASS}
                         />
                       </td>
                       <td className="px-2 py-1.5">
                         <input
                           value={row.serialNumber}
                           onChange={(e) => updateRow(row.key, "serialNumber", e.target.value)}
-                          className="cell-input data-mono"
+                          className={cn(CELL_CLASS, "data-mono")}
                         />
                       </td>
                       <td className="px-2 py-1.5">
                         <select
                           value={row.engineType}
                           onChange={(e) => updateRow(row.key, "engineType", e.target.value)}
-                          className="cell-input"
+                          className={CELL_CLASS}
                         >
                           <option value="">— unset —</option>
                           {masters.engineTypes.map((t) => (
@@ -232,14 +225,14 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
                           type="date"
                           value={row.dateIn}
                           onChange={(e) => updateRow(row.key, "dateIn", e.target.value)}
-                          className="cell-input data-mono"
+                          className={cn(CELL_CLASS, "data-mono")}
                         />
                       </td>
                       <td className="px-2 py-1.5">
                         <input
                           value={row.workCenter}
                           onChange={(e) => updateRow(row.key, "workCenter", e.target.value)}
-                          className="cell-input"
+                          className={CELL_CLASS}
                         />
                       </td>
                       <td className="px-2 py-1.5">
@@ -251,14 +244,14 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
                         <input
                           value={row.location}
                           onChange={(e) => updateRow(row.key, "location", e.target.value)}
-                          className="cell-input"
+                          className={CELL_CLASS}
                         />
                       </td>
                       <td className="px-2 py-1.5">
                         <input
                           value={row.remark}
                           onChange={(e) => updateRow(row.key, "remark", e.target.value)}
-                          className="cell-input"
+                          className={CELL_CLASS}
                         />
                       </td>
                       <td className="px-2 py-1.5 text-center">
@@ -280,60 +273,28 @@ export function BulkAddOrdersDialog({ masters, onClose }: { masters: OrderMaster
           </div>
 
           <div>
-            <button
-              type="button"
-              onClick={addRow}
-              className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-text-primary"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={addRow}>
               + Add row
-            </button>
+            </Button>
           </div>
 
           {error && <p className="text-sm text-status-urgent">{error}</p>}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between border-t border-border px-5 py-3">
-          <span className="text-xs text-text-secondary">{validRowCount} of {rows.length} rows ready to save</span>
+        <DialogFooter>
+          <span className="text-xs text-text-secondary">
+            {validRowCount} of {rows.length} rows ready to save
+          </span>
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={pending || validRowCount === 0}
-              className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
-            >
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={pending || validRowCount === 0}>
               {pending ? "Saving…" : `Save ${validRowCount || ""} order${validRowCount === 1 ? "" : "s"}`}
-            </button>
+            </Button>
           </div>
-        </div>
-
-        <style jsx>{`
-          .cell-input {
-            width: 100%;
-            min-width: 90px;
-            border-radius: 6px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 5px 8px;
-            font-size: 13px;
-            color: var(--text-primary);
-          }
-          .cell-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-bg);
-          }
-          .cell-input-error {
-            border-color: var(--status-urgent);
-          }
-        `}</style>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

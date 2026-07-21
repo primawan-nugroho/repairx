@@ -3,6 +3,17 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Order } from "@/db/schema";
 import type { OrderMasters } from "@/lib/masters";
 import { deriveStatus, deriveUic } from "@/lib/wc-uic-map";
@@ -33,9 +44,14 @@ export function OrderEditDialog({ order, canEdit, masters, onClose }: OrderEditD
   const [mwcToday, setMwcToday] = useState(base.mwcToday ?? "");
   const [serialNumber, setSerialNumber] = useState(base.serialNumber ?? "");
   const [engineType, setEngineType] = useState(isEngineType(base.engineType, masters.engineTypes) ? base.engineType : "");
+  const [status, setStatus] = useState(isCanonicalOrderStatus(base.status) ? base.status : "");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const derivedUic = deriveUic(mwcToday, masters.workCenterToUic);
+  const autoStatus =
+    masters.terminalUic && derivedUic === masters.terminalUic
+      ? deriveStatus(derivedUic, null, masters.terminalUic)
+      : null;
 
   useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
@@ -84,35 +100,22 @@ export function OrderEditDialog({ order, canEdit, masters, onClose }: OrderEditD
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="data-mono text-base font-semibold text-text-primary">
-            {isNew ? "Add order" : `Order ${order!.orderNumber}`}
-          </h2>
-          <div className="flex items-center gap-3">
-            {!isNew && (
-              <Link
-                href={`/orders/${encodeURIComponent(order!.orderNumber)}`}
-                className="text-xs font-medium text-accent hover:underline"
-              >
-                View history
-              </Link>
-            )}
-            <button
-              onClick={onClose}
-              aria-label="Close"
-              className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-2xl gap-0 p-0"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="data-mono">{isNew ? "Add order" : `Order ${order!.orderNumber}`}</DialogTitle>
+          {!isNew && (
+            <Link
+              href={`/orders/${encodeURIComponent(order!.orderNumber)}`}
+              className="mr-8 text-xs font-medium text-accent hover:underline"
             >
-              ✕
-            </button>
-          </div>
-        </div>
+              View history
+            </Link>
+          )}
+        </DialogHeader>
 
         <form
           ref={formRef}
@@ -121,244 +124,173 @@ export function OrderEditDialog({ order, canEdit, masters, onClose }: OrderEditD
         >
           {!isNew && <input type="hidden" name="originalOrderNumber" value={order!.orderNumber} />}
           <input type="hidden" name="engineType" value={engineType} />
+          {autoStatus && <input type="hidden" name="status" value={autoStatus} />}
 
-          <div className="md:col-span-2">
-            <Field label="Order number">
-              <input
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                required
-                disabled={!canEdit}
-                autoFocus
-                className="field-input data-mono"
-              />
-            </Field>
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label>Order number</Label>
+            <Input
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              required
+              disabled={!canEdit}
+              autoFocus
+              className="data-mono"
+            />
           </div>
 
-          <Field label="Date in">
-            <input
-              type="date"
-              name="dateIn"
-              defaultValue={base.dateIn ?? ""}
-              disabled={!canEdit}
-              className="field-input data-mono"
-            />
-          </Field>
-          <Field label="Gate 4 target">
-            <input
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="dateIn">Date in</Label>
+            <Input id="dateIn" type="date" name="dateIn" defaultValue={base.dateIn ?? ""} disabled={!canEdit} className="data-mono" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="gate4Target">Gate 4 target</Label>
+            <Input
+              id="gate4Target"
               type="date"
               name="gate4Target"
               defaultValue={base.gate4Target ?? ""}
               disabled={!canEdit}
-              className="field-input data-mono"
+              className="data-mono"
             />
-          </Field>
-
-          <div className="md:col-span-2">
-            <Field label="Description">
-              <input
-                name="description"
-                defaultValue={base.description ?? ""}
-                disabled={!canEdit}
-                className="field-input"
-              />
-            </Field>
           </div>
 
-          <Field label="Serial number">
-            <input
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label htmlFor="description">Description</Label>
+            <Input id="description" name="description" defaultValue={base.description ?? ""} disabled={!canEdit} />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="serialNumber">Serial number</Label>
+            <Input
+              id="serialNumber"
               name="serialNumber"
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
               onBlur={(e) => handleSerialBlur(e.target.value)}
               disabled={!canEdit}
-              className="field-input data-mono"
+              className="data-mono"
             />
-          </Field>
-          <Field label="Engine type">
-            <select
-              value={engineType}
-              onChange={(e) => setEngineType(e.target.value)}
-              disabled={!canEdit}
-              className="field-input"
-            >
-              <option value="">— unset —</option>
-              {masters.engineTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <div className="md:col-span-2">
-            <Field label="MWC routing">
-              <input
-                name="mwcRouting"
-                defaultValue={base.mwcRouting ?? ""}
-                disabled={!canEdit}
-                className="field-input data-mono"
-              />
-            </Field>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Engine type</Label>
+            <Select value={engineType} onValueChange={setEngineType} disabled={!canEdit}>
+              <SelectTrigger>
+                <SelectValue placeholder="— unset —" />
+              </SelectTrigger>
+              <SelectContent>
+                {masters.engineTypes.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <Field label="Work center (today)">
-            <input
-              value={mwcToday}
-              onChange={(e) => setMwcToday(e.target.value)}
-              disabled={!canEdit}
-              className="field-input"
-            />
-          </Field>
-          <Field label="UIC (derived)">
-            <input value={derivedUic ?? "-"} readOnly disabled className="field-input text-text-secondary" />
-          </Field>
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label htmlFor="mwcRouting">MWC routing</Label>
+            <Input id="mwcRouting" name="mwcRouting" defaultValue={base.mwcRouting ?? ""} disabled={!canEdit} className="data-mono" />
+          </div>
 
-          <Field label="Status">
-            {masters.terminalUic && derivedUic === masters.terminalUic ? (
-              <>
-                <input
-                  value={`${deriveStatus(derivedUic, null, masters.terminalUic)} (auto — in serviceable store)`}
-                  readOnly
-                  disabled
-                  className="field-input text-text-secondary"
-                />
-                <input type="hidden" name="status" value={deriveStatus(derivedUic, null, masters.terminalUic) ?? ""} />
-              </>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="mwcToday">Work center (today)</Label>
+            <Input id="mwcToday" value={mwcToday} onChange={(e) => setMwcToday(e.target.value)} disabled={!canEdit} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>UIC (derived)</Label>
+            <Input value={derivedUic ?? "-"} readOnly disabled className="text-text-secondary" />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label>Status</Label>
+            {autoStatus ? (
+              <Input value={`${autoStatus} (auto — in serviceable store)`} readOnly disabled className="text-text-secondary" />
             ) : (
-              <select
-                name="status"
-                defaultValue={isCanonicalOrderStatus(base.status) ? base.status : ""}
-                disabled={!canEdit}
-                className="field-input"
-              >
-                <option value="">— unset —</option>
-                {ORDER_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <Select name="status" value={status} onValueChange={setStatus} disabled={!canEdit}>
+                <SelectTrigger>
+                  <SelectValue placeholder="— unset —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDER_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </Field>
-          <Field label="Plan finish date">
-            <input
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="planFinishDate">Plan finish date</Label>
+            <Input
+              id="planFinishDate"
               type="date"
               name="planFinishDate"
               defaultValue={base.planFinishDate ?? ""}
               disabled={!canEdit}
-              className="field-input data-mono"
+              className="data-mono"
             />
-          </Field>
+          </div>
 
-          <Field label="Location">
-            <input
-              name="location"
-              defaultValue={base.location ?? ""}
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="location">Location</Label>
+            <Input id="location" name="location" defaultValue={base.location ?? ""} disabled={!canEdit} />
+          </div>
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label htmlFor="remark">Remark</Label>
+            <textarea
+              id="remark"
+              name="remark"
+              defaultValue={base.remark ?? ""}
               disabled={!canEdit}
-              className="field-input"
+              rows={2}
+              className="flex w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg disabled:cursor-not-allowed disabled:opacity-60"
             />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="Remark">
-              <textarea
-                name="remark"
-                defaultValue={base.remark ?? ""}
-                disabled={!canEdit}
-                rows={2}
-                className="field-input"
-              />
-            </Field>
           </div>
 
-          {error && <p className="md:col-span-2 text-sm text-status-urgent">{error}</p>}
-
-          <div className="md:col-span-2 flex items-center justify-between border-t border-border pt-3 -mx-5 -mb-4 px-5 pb-4">
-            <div>
-              {canEdit && !isNew && (
-                confirmingDelete ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary">Delete this order?</span>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={pending}
-                      className="rounded-full bg-status-urgent px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-                    >
-                      {pending ? "Deleting…" : "Confirm delete"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingDelete(false)}
-                      className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-text-primary"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDelete(true)}
-                    className="rounded-full border border-status-urgent px-5 py-2 text-sm font-medium text-status-urgent"
-                  >
-                    Delete
-                  </button>
-                )
-              )}
-            </div>
-
-            {!confirmingDelete && (
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
-                >
-                  {canEdit ? "Cancel" : "Close"}
-                </button>
-                {canEdit && (
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
-                  >
-                    {pending ? "Saving…" : isNew ? "Create order" : "Save"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {error && <p className="text-sm text-status-urgent md:col-span-2">{error}</p>}
         </form>
 
-        <style jsx>{`
-          .field-input {
-            width: 100%;
-            border-radius: 8px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 7px 12px;
-            font-size: 14px;
-            color: var(--text-primary);
-          }
-          .field-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px var(--accent-bg);
-          }
-          .field-input:disabled {
-            opacity: 0.7;
-          }
-        `}</style>
-      </div>
-    </div>
-  );
-}
+        <DialogFooter>
+          <div>
+            {canEdit &&
+              !isNew &&
+              (confirmingDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-text-secondary">Delete this order?</span>
+                  <Button type="button" variant="destructive" size="sm" onClick={handleDelete} disabled={pending}>
+                    {pending ? "Deleting…" : "Confirm delete"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="border-status-urgent text-status-urgent"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Delete
+                </Button>
+              ))}
+          </div>
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      {children}
-    </div>
+          {!confirmingDelete && (
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                {canEdit ? "Cancel" : "Close"}
+              </Button>
+              {canEdit && (
+                <Button type="submit" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>
+                  {pending ? "Saving…" : isNew ? "Create order" : "Save"}
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

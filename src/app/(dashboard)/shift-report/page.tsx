@@ -6,6 +6,7 @@ import { ShiftEntryForm } from "./entry-form";
 import { GroupedEntriesView } from "@/components/shift-entries/grouped-entries-view";
 import { currentShift } from "@/lib/shift";
 import { updateShiftReportEntry, archiveShiftReportEntry } from "./actions";
+import { Card } from "@/components/ui/card";
 
 interface PageProps {
   searchParams: Promise<{ date?: string; shift?: string }>;
@@ -69,10 +70,10 @@ export default async function ShiftReportPage({ searchParams }: PageProps) {
 
       {canEdit && <ShiftEntryForm reportDate={reportDate} shift={shift} workCenterToUic={masters.workCenterToUic} />}
 
-      <div className="bg-surface-solid flex gap-6 rounded-lg border border-border p-4">
+      <Card className="flex gap-6 p-4">
         <Stat label="Entries" value={summary.totalEntries} />
         <Stat label="Closed" value={summary.closedCount} />
-      </div>
+      </Card>
 
       <GroupedEntriesView
         entries={entries}

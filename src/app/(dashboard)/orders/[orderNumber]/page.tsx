@@ -5,6 +5,7 @@ import { getMasters } from "@/lib/masters";
 import { formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
+import { Card } from "@/components/ui/card";
 
 interface PageProps {
   params: Promise<{ orderNumber: string }>;
@@ -45,7 +46,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
         <p className="text-sm text-text-secondary">{order.description || "-"}</p>
       </div>
 
-      <div className="bg-surface-solid grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border border-border p-5 text-sm md:grid-cols-4">
+      <Card className="grid grid-cols-2 gap-x-6 gap-y-3 p-5 text-sm md:grid-cols-4">
         <InfoField label="Date in" value={formatDate(order.dateIn)} />
         <InfoField label="Gate 4 target" value={formatDate(order.gate4Target)} />
         <InfoField label="Plan finish date" value={formatDate(order.planFinishDate)} />
@@ -77,7 +78,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
         <div className="col-span-2 md:col-span-4">
           <InfoField label="Remark" value={order.remark || "-"} />
         </div>
-      </div>
+      </Card>
 
       <HistorySection title={`Shift report history (${shiftHistory.length})`} emptyMessage="No shift-report entries logged for this order yet.">
         {shiftHistory.length > 0 && (
@@ -184,10 +185,10 @@ function HistorySection({
 }) {
   const isEmpty = !children;
   return (
-    <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
+    <Card className="flex flex-col gap-3 p-5">
       <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
       <div className="overflow-x-auto">{children}</div>
       {isEmpty && <p className="text-xs text-text-tertiary">{emptyMessage}</p>}
-    </div>
+    </Card>
   );
 }

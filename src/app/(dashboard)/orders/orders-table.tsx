@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { History } from "lucide-react";
 import {
   createColumnHelper,
   flexRender,
@@ -77,9 +78,10 @@ export function OrdersTable({
           <Link
             href={`/orders/${encodeURIComponent(info.getValue())}`}
             title="View history"
-            className="rounded border border-border px-1 text-[10px] font-medium text-text-tertiary hover:border-border-strong hover:text-text-secondary"
+            aria-label="View history"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-muted hover:text-text-secondary"
           >
-            history
+            <History className="size-3.5" />
           </Link>
         </span>
       ),

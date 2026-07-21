@@ -2,6 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { User } from "@/db/schema";
 import { updateUserAction } from "./actions";
 
@@ -10,10 +21,12 @@ export function EditUserButton({ user, isSelf }: { user: User; isSelf: boolean }
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string>(user.role);
 
   function handleSubmit(formData: FormData) {
     setError(null);
     formData.set("userId", String(user.id));
+    formData.set("role", role);
     startTransition(async () => {
       try {
         await updateUserAction(formData);
@@ -27,110 +40,67 @@ export function EditUserButton({ user, isSelf }: { user: User; isSelf: boolean }
 
   return (
     <>
-      <button
+      <Button
+        variant="link"
+        className="h-auto p-0 text-xs"
         onClick={() => {
           setOpen(true);
           setError(null);
         }}
-        className="text-xs font-medium text-accent hover:underline"
       >
         Edit
-      </button>
+      </Button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div className="w-full max-w-md rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3">
-              <h2 className="data-mono text-base font-semibold text-text-primary">Edit user — {user.username}</h2>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Close"
-                className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
-              >
-                ✕
-              </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="data-mono">Edit user — {user.username}</DialogTitle>
+          </DialogHeader>
+
+          <form action={handleSubmit} className="flex flex-col gap-3 px-5 py-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                defaultValue={user.username}
+                required
+                className="data-mono"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="displayName">Display name</Label>
+              <Input id="displayName" name="displayName" defaultValue={user.displayName} required />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label>Role</Label>
+              <Select value={role} onValueChange={setRole} disabled={isSelf}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="production_control">Production control</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+              {isSelf && <span className="text-xs text-text-tertiary">You cannot change your own role.</span>}
             </div>
 
-            <form action={handleSubmit} className="flex flex-col gap-3 px-5 py-4">
-              <Field label="Username">
-                <input
-                  name="username"
-                  defaultValue={user.username}
-                  required
-                  className="field-input data-mono"
-                  autoComplete="off"
-                />
-              </Field>
-              <Field label="Display name">
-                <input name="displayName" defaultValue={user.displayName} required className="field-input" />
-              </Field>
-              <Field label="Role">
-                <select name="role" defaultValue={user.role} disabled={isSelf} className="field-input">
-                  <option value="admin">Admin</option>
-                  <option value="production_control">Production control</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-                {isSelf && (
-                  <span className="text-xs text-text-tertiary">You cannot change your own role.</span>
-                )}
-              </Field>
+            {error && <p className="text-sm text-status-urgent">{error}</p>}
 
-              {error && <p className="text-sm text-status-urgent">{error}</p>}
-
-              <div className="mt-2 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
-                >
-                  {pending ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </form>
-
-            <style jsx>{`
-              .field-input {
-                width: 100%;
-                border-radius: 8px;
-                background: var(--surface);
-                border: 1px solid var(--border);
-                padding: 7px 12px;
-                font-size: 14px;
-                color: var(--text-primary);
-              }
-              .field-input:focus {
-                outline: none;
-                border-color: var(--accent);
-                box-shadow: 0 0 0 4px var(--accent-bg);
-              }
-              .field-input:disabled {
-                opacity: 0.7;
-              }
-            `}</style>
-          </div>
-        </div>
-      )}
+            <div className="mt-2 flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      {children}
-    </div>
   );
 }

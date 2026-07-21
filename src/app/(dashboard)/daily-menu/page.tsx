@@ -7,6 +7,7 @@ import { currentShift } from "@/lib/shift";
 import { PopulateButton } from "./populate-button";
 import { DailyMenuEntryForm } from "./entry-form";
 import { updateDailyMenuEntry, archiveDailyMenuEntry } from "./actions";
+import { Card } from "@/components/ui/card";
 
 interface PageProps {
   searchParams: Promise<{ date?: string; shift?: string }>;
@@ -74,13 +75,13 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
       {canEdit && <DailyMenuEntryForm menuDate={menuDate} shift={shift} workCenterToUic={masters.workCenterToUic} />}
 
       {entries.length === 0 && canEdit && (
-        <div className="bg-surface-solid flex items-center justify-between rounded-lg border border-border p-4">
+        <Card className="flex items-center justify-between p-4">
           <span className="text-sm text-text-secondary">
             No menu yet for this date/shift — pull it from the previous shift ({prev.shift} on{" "}
             {prev.date}) to start from what was already logged.
           </span>
           <PopulateButton menuDate={menuDate} shift={shift} />
-        </div>
+        </Card>
       )}
 
       <GroupedEntriesView

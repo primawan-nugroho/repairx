@@ -2,6 +2,17 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createShiftReportEntry, lookupOrderAction } from "./actions";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { deriveUic } from "@/lib/wc-uic-map";
 import { BARCODE_STATUSES } from "@/lib/shift-status";
 import { useToast } from "@/components/toast";
@@ -28,6 +39,7 @@ export function ShiftEntryForm({
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [workCenter, setWorkCenter] = useState("");
+  const [completenessStatus, setCompletenessStatus] = useState("Open");
   const [pending, startTransition] = useTransition();
 
   const derivedUic = deriveUic(workCenter, workCenterToUic);
@@ -45,135 +57,113 @@ export function ShiftEntryForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      action={(formData) => {
-        startTransition(async () => {
-          await createShiftReportEntry(formData);
-          showToast("Entry added");
-          formRef.current?.reset();
-          setLookup(null);
-          setNotFound(false);
-          setWorkCenter("");
-        });
-      }}
-      className="bg-surface-solid grid grid-cols-1 gap-3 rounded-lg border border-border p-5 md:grid-cols-4"
-    >
-      <input type="hidden" name="reportDate" value={reportDate} />
-      <input type="hidden" name="shift" value={shift} />
-
-      <Field label="Order number">
-        <input
-          name="orderNumber"
-          required
-          autoFocus
-          onBlur={(e) => handleOrderBlur(e.target.value)}
-          className="field-input data-mono"
-        />
-      </Field>
-
-      <Field label="Work center">
-        <input
-          name="workCenter"
-          value={workCenter}
-          onChange={(e) => setWorkCenter(e.target.value)}
-          className="field-input"
-        />
-      </Field>
-
-      <Field label="UIC (derived)">
-        <input
-          value={derivedUic ?? "-"}
-          readOnly
-          disabled
-          className="field-input text-text-secondary"
-        />
+    <Card asChild>
+      <form
+        ref={formRef}
+        action={(formData) => {
+          startTransition(async () => {
+            await createShiftReportEntry(formData);
+            showToast("Entry added");
+            formRef.current?.reset();
+            setLookup(null);
+            setNotFound(false);
+            setWorkCenter("");
+            setCompletenessStatus("Open");
+          });
+        }}
+        className="grid grid-cols-1 gap-3 p-5 md:grid-cols-4"
+      >
+        <input type="hidden" name="reportDate" value={reportDate} />
+        <input type="hidden" name="shift" value={shift} />
         <input type="hidden" name="uic" value={derivedUic ?? ""} />
-      </Field>
+        <input type="hidden" name="completenessStatus" value={completenessStatus} />
 
-      <Field label="Ops">
-        <input name="ops" className="field-input data-mono" />
-      </Field>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="orderNumber">Order number</Label>
+          <Input
+            id="orderNumber"
+            name="orderNumber"
+            required
+            autoFocus
+            onBlur={(e) => handleOrderBlur(e.target.value)}
+            className="data-mono"
+          />
+        </div>
 
-      <div className="md:col-span-4 flex flex-col gap-1">
-        <span className="text-xs font-medium text-text-secondary">
-          Description / serial / engine (auto-filled)
-        </span>
-        <span className="text-sm text-text-secondary">
-          {notFound
-            ? "Order not found in database — entry will still be saved, flagged for review."
-            : lookup
-              ? `${lookup.description ?? "-"} · ${lookup.serialNumber ?? "-"} · ${lookup.engineType ?? "-"}`
-              : "Enter an order number and tab out to auto-fill"}
-        </span>
-      </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="workCenter">Work center</Label>
+          <Input id="workCenter" name="workCenter" value={workCenter} onChange={(e) => setWorkCenter(e.target.value)} />
+        </div>
 
-      <div className="md:col-span-4">
-        <Field label="Activity">
-          <textarea name="activity" rows={2} className="field-input" />
-        </Field>
-      </div>
+        <div className="flex flex-col gap-1">
+          <Label>UIC (derived)</Label>
+          <Input value={derivedUic ?? "-"} readOnly disabled className="text-text-secondary" />
+        </div>
 
-      <Field label="Progress %">
-        <input name="progressPct" type="number" min={0} max={100} className="field-input data-mono" />
-      </Field>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="ops">Ops</Label>
+          <Input id="ops" name="ops" className="data-mono" />
+        </div>
 
-      <Field label="Stamp">
-        <label className="flex h-[38px] items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm">
-          <input name="stamp" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
-          <span className="text-text-secondary">Stamped</span>
-        </label>
-      </Field>
-      <Field label="Barcode status">
-        <select name="completenessStatus" defaultValue="Open" className="field-input">
-          {BARCODE_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <div className="md:col-span-2">
-        <Field label="Remark">
-          <input name="remark" className="field-input" />
-        </Field>
-      </div>
+        <div className="flex flex-col gap-1 md:col-span-4">
+          <Label>Description / serial / engine (auto-filled)</Label>
+          <span className="text-sm text-text-secondary">
+            {notFound
+              ? "Order not found in database — entry will still be saved, flagged for review."
+              : lookup
+                ? `${lookup.description ?? "-"} · ${lookup.serialNumber ?? "-"} · ${lookup.engineType ?? "-"}`
+                : "Enter an order number and tab out to auto-fill"}
+          </span>
+        </div>
 
-      <div className="md:col-span-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Saving…" : "Add entry"}
-        </button>
-      </div>
+        <div className="flex flex-col gap-1 md:col-span-4">
+          <Label htmlFor="activity">Activity</Label>
+          <textarea
+            id="activity"
+            name="activity"
+            rows={2}
+            className="flex w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg"
+          />
+        </div>
 
-      <style jsx>{`
-        .field-input {
-          width: 100%;
-          border-radius: 8px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          padding: 8px 12px;
-          font-size: 14px;
-          color: var(--text-primary);
-        }
-        .field-input:focus {
-          outline: none;
-          border-color: var(--accent);
-          box-shadow: 0 0 0 4px var(--accent-bg);
-        }
-      `}</style>
-    </form>
-  );
-}
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="progressPct">Progress %</Label>
+          <Input id="progressPct" name="progressPct" type="number" min={0} max={100} className="data-mono" />
+        </div>
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      {children}
-    </div>
+        <div className="flex flex-col gap-1">
+          <Label>Stamp</Label>
+          <label className="flex h-9 items-center gap-2 rounded-sm border border-border bg-surface px-3 text-sm">
+            <input name="stamp" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
+            <span className="text-text-secondary">Stamped</span>
+          </label>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label>Barcode status</Label>
+          <Select value={completenessStatus} onValueChange={setCompletenessStatus}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BARCODE_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 md:col-span-2">
+          <Label htmlFor="remark">Remark</Label>
+          <Input id="remark" name="remark" />
+        </div>
+
+        <div className="flex justify-end md:col-span-4">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Add entry"}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }

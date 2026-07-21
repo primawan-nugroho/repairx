@@ -84,10 +84,13 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+// Plain sans by default — pass className="data-mono" for titles that are literally
+// an order number (see order-edit-dialog.tsx), same as every other data-mono usage
+// in the app (never the default, only opted into for actual identifiers).
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn("data-mono text-base font-semibold text-text-primary", className)}
+      className={cn("text-base font-semibold text-text-primary", className)}
       {...props}
     />
   );

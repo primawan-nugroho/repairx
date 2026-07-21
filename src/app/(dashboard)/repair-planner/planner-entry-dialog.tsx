@@ -2,6 +2,17 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { RepairPlannerEntry } from "@/db/schema";
 import { isEngineType } from "@/lib/engine-types";
 import { PLANNER_STATUSES } from "@/lib/planner-status";
@@ -42,31 +53,23 @@ function CanonicalSelect({
 }) {
   const hasLegacyValue = value && !options.includes(value);
   return (
-    <select
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      // Plain Tailwind utilities rather than the "field-input" class used elsewhere
-      // in this dialog: that class is defined in a <style jsx> block scoped by
-      // Next.js to elements written directly inside PlannerEntryDialog's own JSX,
-      // so it never reaches a select rendered by this separate component (styled-jsx
-      // scoping doesn't cross component boundaries) — same class of bug as the
-      // transparent-dropdown fixes elsewhere in this app.
-      className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg disabled:opacity-70"
-    >
-      <option value="">— unset —</option>
-      {hasLegacyValue && (
-        <option value={value} disabled>
-          {value} (not in list)
-        </option>
-      )}
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
+    <Select name={name} value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger>
+        <SelectValue placeholder="— unset —" />
+      </SelectTrigger>
+      <SelectContent>
+        {hasLegacyValue && (
+          <SelectItem value={value} disabled>
+            {value} (not in list)
+          </SelectItem>
+        )}
+        {options.map((o) => (
+          <SelectItem key={o} value={o}>
+            {o}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -79,6 +82,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, engineTypes, rpcNa
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [engineApu, setEngineApu] = useState(base.engineApu ?? "");
   const [engineType, setEngineType] = useState(isEngineType(base.engineType, engineTypes) ? base.engineType : "");
   const [eo, setEo] = useState(base.eo ?? "");
   const [rpc1, setRpc1] = useState(base.rpc1 ?? "");
@@ -123,105 +127,95 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, engineTypes, rpcNa
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface-solid shadow-[var(--shadow-popover)]">
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="text-base font-semibold text-text-primary">
-            {isNew ? "Add repair planner entry" : `${base.serialNumber ?? "Entry"}`}
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-full px-2 py-1 text-text-secondary hover:bg-surface"
-          >
-            ✕
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-2xl gap-0 p-0"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>{isNew ? "Add repair planner entry" : `${base.serialNumber ?? "Entry"}`}</DialogTitle>
+        </DialogHeader>
 
         <form
           ref={formRef}
           action={handleSubmit}
           className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
         >
-          <Field label="Engine/APU">
-            <select
-              name="engineApu"
-              defaultValue={base.engineApu ?? ""}
-              disabled={!canEdit}
-              autoFocus
-              className="field-input"
-            >
-              <option value="">-</option>
-              <option value="Engine">Engine</option>
-              <option value="APU">APU</option>
-            </select>
-          </Field>
-          <Field label="Customer">
-            <input name="customer" defaultValue={base.customer ?? ""} disabled={!canEdit} className="field-input" />
-          </Field>
+          <div className="flex flex-col gap-1">
+            <Label>Engine/APU</Label>
+            <Select name="engineApu" value={engineApu} onValueChange={setEngineApu} disabled={!canEdit}>
+              <SelectTrigger>
+                <SelectValue placeholder="-" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Engine">Engine</SelectItem>
+                <SelectItem value="APU">APU</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="customer">Customer</Label>
+            <Input id="customer" name="customer" defaultValue={base.customer ?? ""} disabled={!canEdit} />
+          </div>
 
-          <Field label="Type">
-            <select
-              name="engineType"
-              value={engineType}
-              onChange={(e) => setEngineType(e.target.value)}
-              disabled={!canEdit}
-              className="field-input data-mono"
-            >
-              <option value="">— unset —</option>
-              {engineTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Serial number">
-            <input
+          <div className="flex flex-col gap-1">
+            <Label>Type</Label>
+            <Select name="engineType" value={engineType} onValueChange={setEngineType} disabled={!canEdit}>
+              <SelectTrigger>
+                <SelectValue placeholder="— unset —" />
+              </SelectTrigger>
+              <SelectContent>
+                {engineTypes.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="serialNumber">Serial number</Label>
+            <Input
+              id="serialNumber"
               name="serialNumber"
               defaultValue={base.serialNumber ?? ""}
               disabled={!canEdit}
-              className="field-input data-mono"
+              className="data-mono"
             />
-          </Field>
+          </div>
 
-          <Field label="EO">
+          <div className="flex flex-col gap-1">
+            <Label>EO</Label>
             <CanonicalSelect name="eo" value={eo} options={eoNames} disabled={!canEdit} onChange={setEo} />
-          </Field>
-          <Field label="Induction date">
-            <input
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="inductionDate">Induction date</Label>
+            <Input
+              id="inductionDate"
               type="date"
               name="inductionDate"
               defaultValue={base.inductionDate ?? ""}
               disabled={!canEdit}
-              className="field-input data-mono"
+              className="data-mono"
             />
-          </Field>
-
-          <div className="md:col-span-2">
-            <Field label="Workscope">
-              <input
-                name="workscope"
-                defaultValue={base.workscope ?? ""}
-                disabled={!canEdit}
-                className="field-input"
-              />
-            </Field>
           </div>
 
-          <Field label="RPC-1">
-            <CanonicalSelect name="rpc1" value={rpc1} options={rpcNames} disabled={!canEdit} onChange={setRpc1} />
-          </Field>
-          <Field label="RPC-2">
-            <CanonicalSelect name="rpc2" value={rpc2} options={rpcNames} disabled={!canEdit} onChange={setRpc2} />
-          </Field>
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label htmlFor="workscope">Workscope</Label>
+            <Input id="workscope" name="workscope" defaultValue={base.workscope ?? ""} disabled={!canEdit} />
+          </div>
 
-          <Field label="Gate 4 status">
+          <div className="flex flex-col gap-1">
+            <Label>RPC-1</Label>
+            <CanonicalSelect name="rpc1" value={rpc1} options={rpcNames} disabled={!canEdit} onChange={setRpc1} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>RPC-2</Label>
+            <CanonicalSelect name="rpc2" value={rpc2} options={rpcNames} disabled={!canEdit} onChange={setRpc2} />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label>Gate 4 status</Label>
             <CanonicalSelect
               name="gate4Status"
               value={gate4Status}
@@ -229,8 +223,9 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, engineTypes, rpcNa
               disabled={!canEdit}
               onChange={setGate4Status}
             />
-          </Field>
-          <Field label="Project status">
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Project status</Label>
             <CanonicalSelect
               name="projectStatus"
               value={projectStatus}
@@ -238,108 +233,63 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, engineTypes, rpcNa
               disabled={!canEdit}
               onChange={setProjectStatus}
             />
-          </Field>
-
-          <div className="md:col-span-2">
-            <Field label="Remark">
-              <textarea
-                name="remark"
-                defaultValue={base.remark ?? ""}
-                disabled={!canEdit}
-                rows={2}
-                className="field-input"
-              />
-            </Field>
           </div>
 
-          {error && <p className="md:col-span-2 text-sm text-status-urgent">{error}</p>}
-
-          <div className="md:col-span-2 flex items-center justify-between border-t border-border pt-3 -mx-5 -mb-4 px-5 pb-4">
-            <div>
-              {canEdit && !isNew && (
-                confirmingDelete ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary">Delete this entry?</span>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={pending}
-                      className="rounded-full bg-status-urgent px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-                    >
-                      {pending ? "Deleting…" : "Confirm delete"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingDelete(false)}
-                      className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-text-primary"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDelete(true)}
-                    className="rounded-full border border-status-urgent px-5 py-2 text-sm font-medium text-status-urgent"
-                  >
-                    Delete
-                  </button>
-                )
-              )}
-            </div>
-
-            {!confirmingDelete && (
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-primary"
-                >
-                  {canEdit ? "Cancel" : "Close"}
-                </button>
-                {canEdit && (
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
-                  >
-                    {pending ? "Saving…" : isNew ? "Create entry" : "Save"}
-                  </button>
-                )}
-              </div>
-            )}
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <Label htmlFor="remark">Remark</Label>
+            <textarea
+              id="remark"
+              name="remark"
+              defaultValue={base.remark ?? ""}
+              disabled={!canEdit}
+              rows={2}
+              className="flex w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg disabled:cursor-not-allowed disabled:opacity-60"
+            />
           </div>
+
+          {error && <p className="text-sm text-status-urgent md:col-span-2">{error}</p>}
         </form>
 
-        <style jsx>{`
-          .field-input {
-            width: 100%;
-            border-radius: 8px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 7px 12px;
-            font-size: 14px;
-            color: var(--text-primary);
-          }
-          .field-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px var(--accent-bg);
-          }
-          .field-input:disabled {
-            opacity: 0.7;
-          }
-        `}</style>
-      </div>
-    </div>
-  );
-}
+        <DialogFooter>
+          <div>
+            {canEdit &&
+              !isNew &&
+              (confirmingDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-text-secondary">Delete this entry?</span>
+                  <Button type="button" variant="destructive" size="sm" onClick={handleDelete} disabled={pending}>
+                    {pending ? "Deleting…" : "Confirm delete"}
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="border-status-urgent text-status-urgent"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Delete
+                </Button>
+              ))}
+          </div>
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      {children}
-    </div>
+          {!confirmingDelete && (
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                {canEdit ? "Cancel" : "Close"}
+              </Button>
+              {canEdit && (
+                <Button type="submit" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>
+                  {pending ? "Saving…" : isNew ? "Create entry" : "Save"}
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
