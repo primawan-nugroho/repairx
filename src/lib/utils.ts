@@ -1,5 +1,12 @@
-export function cn(...classes: Array<string | false | null | undefined>): string {
-  return classes.filter(Boolean).join(" ");
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// Upgraded from a plain filter+join to clsx+tailwind-merge (the shadcn/ui
+// convention) so conflicting Tailwind classes resolve correctly (e.g. a caller
+// overriding a default `p-4` with `p-2` keeps only `p-2`) — a strict superset of
+// every existing call site, which only ever passed plain strings/falsy values.
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }
 
 /** Numeric DD-MM-YYYY, dash-separated — the "date-month-year" format requested for

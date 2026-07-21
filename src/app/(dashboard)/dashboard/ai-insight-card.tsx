@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { generateInsight } from "./actions";
 
@@ -45,59 +47,57 @@ export function AiInsightCard({ initialContent, generatedAt }: AiInsightCardProp
     .map((line) => line.replace(/^[-•*]\s+/, ""));
 
   return (
-    <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-text-primary">AI shift briefing</h2>
-          {generatedAtState && (
-            <p className="text-xs text-text-tertiary">
-              Generated {formatDate(generatedAtState)} at{" "}
-              {generatedAtState.toLocaleTimeString("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" })}
-            </p>
-          )}
+    <Card>
+      <CardContent>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">AI shift briefing</h2>
+            {generatedAtState && (
+              <p className="text-xs text-text-tertiary">
+                Generated {formatDate(generatedAtState)} at{" "}
+                {generatedAtState.toLocaleTimeString("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <Button onClick={handleGenerate} disabled={pending} size="sm">
+            {pending ? "Generating…" : content ? "Regenerate" : "Generate insight"}
+          </Button>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={pending}
-          className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "Generating…" : content ? "Regenerate" : "Generate insight"}
-        </button>
-      </div>
 
-      {error && (
-        <p className="text-xs text-status-urgent">
-          {error} The dashboard&apos;s numbers above are still accurate — this only affects the AI summary.
-        </p>
-      )}
+        {error && (
+          <p className="text-xs text-status-urgent">
+            {error} The dashboard&apos;s numbers above are still accurate — this only affects the AI summary.
+          </p>
+        )}
 
-      {!content && !error && !pending && (
-        <p className="text-sm text-text-secondary">
-          No briefing yet for this shift. Click &quot;Generate insight&quot; for a short AI summary of what moved,
-          what&apos;s stalled, and what to prioritize next.
-        </p>
-      )}
+        {!content && !error && !pending && (
+          <p className="text-sm text-text-secondary">
+            No briefing yet for this shift. Click &quot;Generate insight&quot; for a short AI summary of what moved,
+            what&apos;s stalled, and what to prioritize next.
+          </p>
+        )}
 
-      {briefing &&
-        (bullets.length > 0 ? (
-          <ul className="flex flex-col gap-1.5 text-sm text-text-primary">
-            {bullets.map((b, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="mt-0.5 text-text-tertiary" aria-hidden>
-                  •
-                </span>
-                <span>{b}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="whitespace-pre-line text-sm text-text-primary">{briefing}</p>
-        ))}
-      {bottleneck && (
-        <p className="rounded-lg bg-status-waiting/10 px-3 py-2 text-sm font-medium text-status-waiting">
-          Bottleneck: {bottleneck}
-        </p>
-      )}
-    </div>
+        {briefing &&
+          (bullets.length > 0 ? (
+            <ul className="flex flex-col gap-1.5 text-sm text-text-primary">
+              {bullets.map((b, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="mt-0.5 text-text-tertiary" aria-hidden>
+                    •
+                  </span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="whitespace-pre-line text-sm text-text-primary">{briefing}</p>
+          ))}
+        {bottleneck && (
+          <p className="rounded-lg bg-status-waiting/10 px-3 py-2 text-sm font-medium text-status-waiting">
+            Bottleneck: {bottleneck}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

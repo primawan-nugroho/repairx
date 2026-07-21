@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getCachedInsight } from "@/lib/ai-insight";
 import { getMasters } from "@/lib/masters";
 import { formatDate } from "@/lib/utils";
-import { StatusBarChart, UicBarChart, MetricBarList, ThroughputChart } from "./dashboard-charts";
+import { StatusDonutChart, UicDonutChart, MetricBarChart, ThroughputBarChart } from "./dashboard-charts";
 import { AiInsightCard } from "./ai-insight-card";
 
 export default async function DashboardPage() {
@@ -45,56 +46,65 @@ export default async function DashboardPage() {
       <AiInsightCard initialContent={cachedInsight?.content ?? null} generatedAt={cachedInsight?.createdAt ?? null} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Orders by status</h2>
-          <StatusBarChart rows={summary.statusBreakdown} />
-        </div>
-        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Active workload by UIC</h2>
-          {masters.terminalUic && (
-            <p className="-mt-2 text-xs text-text-tertiary">Excludes {masters.terminalUic} (serviceable store)</p>
-          )}
-          <UicBarChart rows={summary.uicBreakdown} uicColorSlugs={masters.uicColorSlugs} />
-        </div>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Orders by status</h2>
+            <StatusDonutChart rows={summary.statusBreakdown} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Active workload by UIC</h2>
+            {masters.terminalUic && (
+              <p className="-mt-2 text-xs text-text-tertiary">Excludes {masters.terminalUic} (serviceable store)</p>
+            )}
+            <UicDonutChart rows={summary.uicBreakdown} uicColorSlugs={masters.uicColorSlugs} />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="bg-surface-solid flex flex-col gap-1 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Average turnaround time</h2>
-          <p className="text-xs text-text-tertiary">Date in → serviceable store, since this metric started tracking</p>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="data-mono text-3xl font-semibold text-text-primary">
-              {summary.tat.avgDays ?? "-"}
-            </span>
-            <span className="text-sm text-text-secondary">days</span>
-          </div>
-          <p className="mt-1 text-xs text-text-tertiary">
-            {summary.tat.sampleSize === 0
-              ? "No orders have reached the store since tracking started."
-              : `Based on ${summary.tat.sampleSize} completed order${summary.tat.sampleSize === 1 ? "" : "s"}.`}
-          </p>
-        </div>
-        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Open order age</h2>
-          <MetricBarList
-            rows={summary.agingBuckets.map((b) => ({ label: b.label, value: b.count }))}
-            formatValue={(v) => String(v)}
-          />
-        </div>
-        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Weekly intake vs. completed</h2>
-          <ThroughputChart weeks={summary.weeklyThroughput} />
-        </div>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Average turnaround time</h2>
+            <p className="text-xs text-text-tertiary">Date in → serviceable store, since this metric started tracking</p>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="data-mono text-3xl font-semibold text-text-primary">
+                {summary.tat.avgDays ?? "-"}
+              </span>
+              <span className="text-sm text-text-secondary">days</span>
+            </div>
+            <p className="mt-1 text-xs text-text-tertiary">
+              {summary.tat.sampleSize === 0
+                ? "No orders have reached the store since tracking started."
+                : `Based on ${summary.tat.sampleSize} completed order${summary.tat.sampleSize === 1 ? "" : "s"}.`}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Open order age</h2>
+            <MetricBarChart rows={summary.agingBuckets.map((b) => ({ label: b.label, value: b.count }))} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Weekly intake vs. completed</h2>
+            <ThroughputBarChart weeks={summary.weeklyThroughput} />
+          </CardContent>
+        </Card>
       </div>
 
       {summary.tatByEngineType.length > 0 && (
-        <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Turnaround time by engine type</h2>
-          <MetricBarList
-            rows={summary.tatByEngineType.map((t) => ({ label: t.label, value: t.avgDays, sublabel: `(n=${t.sampleSize})` }))}
-            formatValue={(v) => `${v}d`}
-          />
-        </div>
+        <Card>
+          <CardContent>
+            <h2 className="text-sm font-semibold text-text-primary">Turnaround time by engine type</h2>
+            <MetricBarChart
+              rows={summary.tatByEngineType.map((t) => ({ label: t.label, value: t.avgDays, sublabel: `(n=${t.sampleSize})` }))}
+              unit="d"
+            />
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -132,14 +142,15 @@ export default async function DashboardPage() {
 
 function KpiTile({ label, value, sub, href }: { label: string; value: number; sub?: string; href: string }) {
   return (
-    <Link
-      href={href}
-      className="bg-surface-solid flex flex-col gap-1 rounded-lg border border-border p-4 hover:border-border-strong"
-    >
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-      <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
-      {sub && <span className="text-xs text-text-tertiary">{sub}</span>}
-    </Link>
+    <Card asChild className="transition-colors hover:border-border-strong">
+      <Link href={href}>
+        <CardContent>
+          <span className="text-xs font-medium text-text-secondary">{label}</span>
+          <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
+          {sub && <span className="text-xs text-text-tertiary">{sub}</span>}
+        </CardContent>
+      </Link>
+    </Card>
   );
 }
 
@@ -153,20 +164,22 @@ function AttentionList({
   emptyMessage: string;
 }) {
   return (
-    <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
-      <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-      {items.length === 0 ? (
-        <p className="text-xs text-text-tertiary">{emptyMessage}</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((item) => (
-            <li key={item.key} className="flex items-center justify-between text-xs">
-              <span className="data-mono text-text-primary">{item.primary}</span>
-              <span className="text-text-tertiary">{item.secondary}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <Card>
+      <CardContent>
+        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        {items.length === 0 ? (
+          <p className="text-xs text-text-tertiary">{emptyMessage}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {items.map((item) => (
+              <li key={item.key} className="flex items-center justify-between text-xs">
+                <span className="data-mono text-text-primary">{item.primary}</span>
+                <span className="text-text-tertiary">{item.secondary}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

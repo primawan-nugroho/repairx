@@ -22,7 +22,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    // The pre-paint script below mutates data-theme on this element before React
+    // hydrates (the standard no-flash-of-wrong-theme technique) — React's hydration
+    // diff would otherwise flag that attribute as a server/client mismatch on every
+    // load, since its own render output never includes data-theme at all.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

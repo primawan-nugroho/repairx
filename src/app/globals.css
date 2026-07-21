@@ -42,6 +42,21 @@
   --uic-i: #9f1239;
   --uic-j: #166534;
   --uic-unmapped: #8e8e93;
+
+  /* shadcn/ui semantic tokens, mapped onto the tokens above rather than a second
+     palette. Deliberately NOT adding a shadcn-style "accent"/"accent-foreground" —
+     shadcn's convention uses --accent for a neutral hover/highlight tint, but this
+     app already uses --accent for the brand-blue color (bg-accent, text-accent, etc.
+     across ~40 existing files) — reusing the name for the opposite meaning would
+     silently repaint every existing accent-blue element gray. Hand-written shadcn
+     components in src/components/ui/ use `bg-muted`/`text-foreground` for that
+     neutral-hover role instead; see each file's comment where it deviates from the
+     canonical shadcn source for this reason. */
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-primary);
+  --muted-foreground: var(--text-secondary);
+  --destructive-foreground: #ffffff;
+  --ring: var(--accent);
 }
 
 [data-theme="dark"] {
@@ -74,6 +89,12 @@
   --uic-i: #fda4af;
   --uic-j: #86efac;
   --uic-unmapped: #98989d;
+
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-primary);
+  --muted-foreground: var(--text-secondary);
+  --destructive-foreground: #ffffff;
+  --ring: var(--accent);
 }
 
 @theme {
@@ -108,6 +129,25 @@
   --color-uic-i: var(--uic-i);
   --color-uic-j: var(--uic-j);
   --color-uic-unmapped: var(--uic-unmapped);
+
+  /* shadcn/ui semantic tokens — see the light-theme block's comment for why there's
+     no --color-accent here (name collision with this app's brand-blue --accent). */
+  --color-background: var(--canvas);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface-solid);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-solid);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--status-urgent);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
 
   --radius-sm: 8px;
   --radius-md: 10px;

@@ -1,9 +1,14 @@
+"use client";
+
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { statusColorKey } from "@/lib/utils";
 import { uicColorKey } from "@/lib/wc-uic-map";
 
-// CSS custom properties (see globals.css) — used directly via inline style so these
-// simple bars don't need a charting library or Tailwind's generated class list to
-// include every status/UIC hue.
+// CSS custom properties (see globals.css), used directly as SVG fill values — Recharts
+// renders plain SVG, and `fill="var(--status-open)"` resolves live against whichever
+// theme is active, so these charts re-color on the light/dark toggle for free with no
+// JS theme-mode plumbing (unlike a CSS-in-JS library, which needs its own theme object
+// kept in sync — see the reverted MUI attempt this replaced).
 const STATUS_VARS: Record<string, string> = {
   "status-open": "var(--status-open)",
   "status-progress": "var(--status-progress)",
@@ -31,111 +36,108 @@ interface BarRow {
   count: number;
 }
 
-function BarList({ rows, colorFor }: { rows: BarRow[]; colorFor: (label: string) => string }) {
-  const max = Math.max(1, ...rows.map((r) => r.count));
+function EmptyState() {
+  return <p className="text-xs text-text-tertiary">No data.</p>;
+}
+
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    background: "var(--surface-solid)",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    fontSize: 12,
+  },
+  labelStyle: { color: "var(--text-primary)" },
+};
+
+/** Status/UIC breakdowns are parts-of-a-whole data (they sum to total open orders) —
+ * a donut fits that better than a bar list, and unlike a single-series bar chart, Pie
+ * supports a distinct color per slice directly via <Cell>. */
+export function StatusDonutChart({ rows }: { rows: BarRow[] }) {
+  if (rows.length === 0) return <EmptyState />;
   return (
-    <div className="flex flex-col gap-2.5">
-      {rows.map((r) => (
-        <div key={r.label} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs text-text-secondary" title={r.label}>
-            {r.label}
-          </span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${(r.count / max) * 100}%`, background: colorFor(r.label) }}
-            />
-          </div>
-          <span className="data-mono w-8 shrink-0 text-right text-xs text-text-secondary">{r.count}</span>
-        </div>
-      ))}
-      {rows.length === 0 && <p className="text-xs text-text-tertiary">No data.</p>}
-    </div>
+    <ResponsiveContainer width="100%" height={260}>
+      <PieChart>
+        <Pie data={rows} dataKey="count" nameKey="label" innerRadius={55} outerRadius={95} paddingAngle={2} cornerRadius={3}>
+          {rows.map((r, i) => (
+            <Cell key={`${r.label}-${i}`} fill={STATUS_VARS[statusColorKey(r.label)] ?? "var(--status-open)"} />
+          ))}
+        </Pie>
+        <Tooltip {...TOOLTIP_STYLE} />
+        <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 
-export function StatusBarChart({ rows }: { rows: BarRow[] }) {
-  return <BarList rows={rows} colorFor={(label) => STATUS_VARS[statusColorKey(label)] ?? "var(--status-open)"} />;
-}
-
-export function UicBarChart({ rows, uicColorSlugs }: { rows: BarRow[]; uicColorSlugs: Record<string, string> }) {
+export function UicDonutChart({ rows, uicColorSlugs }: { rows: BarRow[]; uicColorSlugs: Record<string, string> }) {
+  if (rows.length === 0) return <EmptyState />;
   return (
-    <BarList rows={rows} colorFor={(label) => UIC_VARS[uicColorKey(label, uicColorSlugs)] ?? "var(--uic-unmapped)"} />
+    <ResponsiveContainer width="100%" height={260}>
+      <PieChart>
+        <Pie data={rows} dataKey="count" nameKey="label" innerRadius={55} outerRadius={95} paddingAngle={2} cornerRadius={3}>
+          {rows.map((r, i) => (
+            <Cell key={`${r.label}-${i}`} fill={UIC_VARS[uicColorKey(r.label, uicColorSlugs)] ?? "var(--uic-unmapped)"} />
+          ))}
+        </Pie>
+        <Tooltip {...TOOLTIP_STYLE} />
+        <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 
-/** Same bar-list layout as BarList but for a non-count metric (e.g. average days) —
- * a single neutral accent color since there's no status/UIC semantic to encode, and
- * a caller-supplied formatter for the trailing value label. */
-export function MetricBarList({
+/** Horizontal bar chart for a non-categorical metric (e.g. average days) — a single
+ * accent-colored series since there's no status/UIC semantic to encode, plus an
+ * optional unit suffix for the tooltip display (e.g. "d" for days). */
+export function MetricBarChart({
   rows,
-  formatValue = (v) => String(v),
+  unit = "",
 }: {
   rows: Array<{ label: string; value: number; sublabel?: string }>;
-  formatValue?: (value: number) => string;
+  unit?: string;
 }) {
-  const max = Math.max(1, ...rows.map((r) => r.value));
+  if (rows.length === 0) return <EmptyState />;
   return (
-    <div className="flex flex-col gap-2.5">
-      {rows.map((r) => (
-        <div key={r.label} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs text-text-secondary" title={r.label}>
-            {r.label}
-          </span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
-            <div
-              className="h-full rounded-full bg-accent"
-              style={{ width: `${(r.value / max) * 100}%` }}
-            />
-          </div>
-          <span className="data-mono w-16 shrink-0 text-right text-xs text-text-secondary">
-            {formatValue(r.value)}
-            {r.sublabel && <span className="text-text-tertiary"> {r.sublabel}</span>}
-          </span>
-        </div>
-      ))}
-      {rows.length === 0 && <p className="text-xs text-text-tertiary">No data.</p>}
-    </div>
+    <ResponsiveContainer width="100%" height={Math.max(140, rows.length * 44)}>
+      <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 24 }}>
+        <CartesianGrid horizontal={false} stroke="var(--border)" />
+        <XAxis type="number" tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <YAxis
+          type="category"
+          dataKey="label"
+          width={130}
+          tick={{ fontSize: 12, fill: "var(--text-secondary)" }}
+          axisLine={{ stroke: "var(--border)" }}
+          tickLine={false}
+        />
+        <Tooltip {...TOOLTIP_STYLE} formatter={(v) => `${v}${unit}`} />
+        <Bar dataKey="value" fill="var(--accent)" radius={[0, 4, 4, 0]} maxBarSize={22} />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
-/** Weekly intake vs. completed pair of bars per week, tallest week normalizing both
- * series so growth/shrinkage is visible at a glance. */
-export function ThroughputChart({
+/** Weekly intake vs. completed — two series so growth/shrinkage across the trailing
+ * weeks is readable from the grouped bars, legend, and hover tooltip together. */
+export function ThroughputBarChart({
   weeks,
 }: {
   weeks: Array<{ weekLabel: string; intake: number; completed: number }>;
 }) {
-  const max = Math.max(1, ...weeks.flatMap((w) => [w.intake, w.completed]));
+  if (weeks.length === 0) return <EmptyState />;
+  const data = weeks.map((w) => ({ ...w, week: w.weekLabel.slice(5) }));
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-end gap-2">
-        {weeks.map((w) => (
-          <div key={w.weekLabel} className="flex flex-1 flex-col items-center gap-1">
-            <div className="flex h-24 w-full items-end gap-0.5">
-              <div
-                className="flex-1 rounded-t bg-uic-c"
-                style={{ height: `${(w.intake / max) * 100}%` }}
-                title={`Intake: ${w.intake}`}
-              />
-              <div
-                className="flex-1 rounded-t bg-status-closed"
-                style={{ height: `${(w.completed / max) * 100}%` }}
-                title={`Completed: ${w.completed}`}
-              />
-            </div>
-            <span className="data-mono text-[10px] text-text-tertiary">{w.weekLabel.slice(5)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-4 text-xs text-text-secondary">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full bg-uic-c" /> Intake
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full bg-status-closed" /> Completed
-        </span>
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} margin={{ top: 8 }}>
+        <CartesianGrid vertical={false} stroke="var(--border)" />
+        <XAxis dataKey="week" tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <YAxis tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <Tooltip {...TOOLTIP_STYLE} />
+        <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
+        <Bar dataKey="intake" name="Intake" fill="var(--uic-c)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        <Bar dataKey="completed" name="Completed" fill="var(--status-closed)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
