@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getDistinctRepairPlannerValues, getRepairPlannerEntries, REPAIR_PLANNER_PAGE_SIZE } from "@/lib/repair-planner";
+import {
+  getDistinctRepairPlannerValues,
+  getRepairPlannerEntries,
+  REPAIR_PLANNER_PAGE_SIZE,
+  type RepairPlannerFilter,
+} from "@/lib/repair-planner";
 import { getMasters, getRepairPlannerMasters } from "@/lib/masters";
 import { buildPersonColorMap } from "@/lib/utils";
 import { PlannerTable } from "./planner-table";
@@ -22,11 +27,33 @@ interface PageProps {
     projectStatus?: string;
     remark?: string;
     page?: string;
+    sortBy?: string;
+    sortDir?: string;
   }>;
 }
 
 function toList(value: string | undefined): string[] | undefined {
   return value ? value.split(",").filter(Boolean) : undefined;
+}
+
+const SORTABLE_COLUMNS: NonNullable<RepairPlannerFilter["sortBy"]>[] = [
+  "serialNumber",
+  "engineApu",
+  "customer",
+  "engineType",
+  "eo",
+  "workscope",
+  "inductionDate",
+  "rpc1",
+  "rpc2",
+  "gate4Status",
+  "projectStatus",
+];
+
+// Validated against the allowlist rather than cast straight through — an unrecognized
+// value in the URL would otherwise index the drizzle table object with `undefined`.
+function toSortBy(value: string | undefined): RepairPlannerFilter["sortBy"] {
+  return SORTABLE_COLUMNS.find((c) => c === value);
 }
 
 export default async function RepairPlannerPage({ searchParams }: PageProps) {
@@ -64,6 +91,8 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
       gate4Status: toList(params.gate4Status),
       projectStatus: toList(params.projectStatus),
       remark: toList(params.remark),
+      sortBy: toSortBy(params.sortBy),
+      sortDir: params.sortDir === "asc" ? "asc" : "desc",
       page,
     }),
     getDistinctRepairPlannerValues("engineApu"),

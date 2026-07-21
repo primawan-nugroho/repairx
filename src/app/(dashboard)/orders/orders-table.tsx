@@ -15,6 +15,7 @@ import { UicBadge, WorkCenterBadge } from "@/components/uic-badge";
 import { OrderEditDialog } from "./order-edit-dialog";
 import { WorkCenterRoutingPopover } from "./work-center-routing-popover";
 import { ColumnFilter } from "@/components/column-filter";
+import { SortButton } from "@/components/sort-button";
 
 interface FilterOptions {
   engineType: string[];
@@ -41,10 +42,11 @@ export function OrdersTable({
 
   const columnHelper = createColumnHelper<Order>();
 
-  function headerWithFilter(label: string, filterEl: React.ReactNode) {
+  function headerWithFilter(label: string, filterEl: React.ReactNode, sortKey?: string) {
     return (
-      <span className="inline-flex items-center">
+      <span className="inline-flex items-center gap-0.5">
         {label}
+        {sortKey && <SortButton sortKey={sortKey} currentSearch={currentSearch} basePath="/orders" label={label} />}
         {filterEl}
       </span>
     );
@@ -62,6 +64,7 @@ export function OrdersTable({
             currentSearch={currentSearch}
             type="text"
           />,
+          "orderNumber",
         ),
       cell: (info) => (
         <span className="inline-flex items-center gap-1.5">
@@ -92,6 +95,7 @@ export function OrdersTable({
             currentSearch={currentSearch}
             type="text"
           />,
+          "description",
         ),
       cell: (info) => (
         <span className="line-clamp-1 max-w-[260px]">{info.getValue() || "-"}</span>
@@ -108,6 +112,7 @@ export function OrdersTable({
             currentSearch={currentSearch}
             type="text"
           />,
+          "serialNumber",
         ),
       cell: (info) => <span className="data-mono">{info.getValue() || "-"}</span>,
     }),
@@ -123,6 +128,7 @@ export function OrdersTable({
             type="select"
             options={filterOptions.engineType}
           />,
+          "engineType",
         ),
     }),
     columnHelper.accessor("mwcToday", {
@@ -137,6 +143,7 @@ export function OrdersTable({
             type="select"
             options={filterOptions.workCenter}
           />,
+          "mwcToday",
         ),
       cell: (info) => (
         <WorkCenterBadge
@@ -159,6 +166,7 @@ export function OrdersTable({
             type="select"
             options={filterOptions.uic}
           />,
+          "uicToday",
         ),
       cell: (info) => <UicBadge uic={info.getValue()} uicColorSlugs={masters.uicColorSlugs} />,
     }),
@@ -174,6 +182,7 @@ export function OrdersTable({
             type="select"
             options={filterOptions.status}
           />,
+          "status",
         ),
       cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
@@ -188,6 +197,7 @@ export function OrdersTable({
             currentSearch={currentSearch}
             type="text"
           />,
+          "location",
         ),
       cell: (info) => <span>{info.getValue() || "-"}</span>,
     }),

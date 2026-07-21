@@ -11,6 +11,7 @@ import type { RepairPlannerEntry } from "@/db/schema";
 import { StatusBadge } from "@/components/status-badge";
 import { PersonBadge } from "@/components/uic-badge";
 import { ColumnFilter } from "@/components/column-filter";
+import { SortButton } from "@/components/sort-button";
 import { formatDate } from "@/lib/utils";
 import { PlannerEntryDialog } from "./planner-entry-dialog";
 
@@ -52,10 +53,13 @@ export function PlannerTable({
 
   const columnHelper = createColumnHelper<RepairPlannerEntry>();
 
-  function headerWithFilter(label: string, filterEl: React.ReactNode) {
+  function headerWithFilter(label: string, filterEl: React.ReactNode, sortKey?: string) {
     return (
-      <span className="inline-flex items-center">
+      <span className="inline-flex items-center gap-0.5">
         {label}
+        {sortKey && (
+          <SortButton sortKey={sortKey} currentSearch={currentSearch} basePath="/repair-planner" label={label} />
+        )}
         {filterEl}
       </span>
     );
@@ -74,6 +78,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.serialNumber}
           />,
+          "serialNumber",
         ),
       cell: (info) => (
         <button
@@ -96,6 +101,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.engineApu}
           />,
+          "engineApu",
         ),
       cell: (info) => info.getValue() || "-",
     }),
@@ -111,6 +117,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.customer}
           />,
+          "customer",
         ),
     }),
     columnHelper.accessor("engineType", {
@@ -125,6 +132,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.engineType}
           />,
+          "engineType",
         ),
     }),
     columnHelper.accessor("eo", {
@@ -139,6 +147,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.eo}
           />,
+          "eo",
         ),
     }),
     columnHelper.accessor("workscope", {
@@ -153,6 +162,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.workscope}
           />,
+          "workscope",
         ),
       cell: (info) => <span className="line-clamp-1 max-w-[220px]">{info.getValue() || "-"}</span>,
     }),
@@ -168,6 +178,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.inductionDate}
           />,
+          "inductionDate",
         ),
       cell: (info) => <span className="data-mono">{formatDate(info.getValue())}</span>,
     }),
@@ -183,6 +194,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.rpc1}
           />,
+          "rpc1",
         ),
       cell: (info) => <PersonBadge name={info.getValue()} colorMap={rpcColorMap} />,
     }),
@@ -198,6 +210,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.rpc2}
           />,
+          "rpc2",
         ),
       cell: (info) => <PersonBadge name={info.getValue()} colorMap={rpcColorMap} />,
     }),
@@ -213,6 +226,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.gate4Status}
           />,
+          "gate4Status",
         ),
       cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
@@ -228,6 +242,7 @@ export function PlannerTable({
             type="select"
             options={filterOptions.projectStatus}
           />,
+          "projectStatus",
         ),
       cell: (info) => <StatusBadge status={info.getValue()} />,
     }),

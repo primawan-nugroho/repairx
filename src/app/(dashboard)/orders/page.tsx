@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getDistinctOrderValues, getOrders, ORDERS_PAGE_SIZE } from "@/lib/orders";
+import { getDistinctOrderValues, getOrders, ORDERS_PAGE_SIZE, type OrdersFilter } from "@/lib/orders";
 import { getMasters } from "@/lib/masters";
 import { OrdersTable } from "./orders-table";
 import { AddOrderButton } from "./add-order-button";
@@ -20,11 +20,33 @@ interface PageProps {
     remarkLike?: string;
     hideStore?: string;
     page?: string;
+    sortBy?: string;
+    sortDir?: string;
   }>;
 }
 
 function toList(value: string | undefined): string[] | undefined {
   return value ? value.split(",").filter(Boolean) : undefined;
+}
+
+const SORTABLE_COLUMNS: NonNullable<OrdersFilter["sortBy"]>[] = [
+  "orderNumber",
+  "description",
+  "serialNumber",
+  "engineType",
+  "mwcToday",
+  "uicToday",
+  "status",
+  "location",
+  "dateIn",
+  "planFinishDate",
+  "tier",
+];
+
+// Validated against the allowlist rather than cast straight through — an unrecognized
+// value in the URL would otherwise index the drizzle table object with `undefined`.
+function toSortBy(value: string | undefined): OrdersFilter["sortBy"] {
+  return SORTABLE_COLUMNS.find((c) => c === value);
 }
 
 export default async function OrdersPage({ searchParams }: PageProps) {
@@ -45,6 +67,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         locationLike: params.locationLike,
         remarkLike: params.remarkLike,
         hideServiceableStore: params.hideStore === "1",
+        sortBy: toSortBy(params.sortBy),
+        sortDir: params.sortDir === "asc" ? "asc" : "desc",
         page,
       }),
       getDistinctOrderValues("engineType"),

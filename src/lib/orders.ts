@@ -20,7 +20,21 @@ export interface OrdersFilter {
    * are finished, not part of the active work queue most Orders views care about. */
   hideServiceableStore?: boolean;
   page?: number;
-  sortBy?: "orderNumber" | "dateIn" | "planFinishDate" | "tier";
+  // orderNumber/description/.../location are the table's actual displayed columns;
+  // dateIn/planFinishDate/tier aren't shown as columns (edit-dialog-only fields) but
+  // stay sortable since dateIn is also the default sort.
+  sortBy?:
+    | "orderNumber"
+    | "description"
+    | "serialNumber"
+    | "engineType"
+    | "mwcToday"
+    | "uicToday"
+    | "status"
+    | "location"
+    | "dateIn"
+    | "planFinishDate"
+    | "tier";
   sortDir?: "asc" | "desc";
 }
 

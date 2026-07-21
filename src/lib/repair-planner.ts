@@ -19,6 +19,19 @@ export interface RepairPlannerFilter {
   projectStatus?: string[];
   remark?: string[];
   page?: number;
+  sortBy?:
+    | "serialNumber"
+    | "engineApu"
+    | "customer"
+    | "engineType"
+    | "eo"
+    | "workscope"
+    | "inductionDate"
+    | "rpc1"
+    | "rpc2"
+    | "gate4Status"
+    | "projectStatus";
+  sortDir?: "asc" | "desc";
 }
 
 export async function getRepairPlannerEntries(filter: RepairPlannerFilter) {
@@ -53,12 +66,15 @@ export async function getRepairPlannerEntries(filter: RepairPlannerFilter) {
 
   const where = and(...conditions);
 
+  const sortColumn = repairPlannerEntries[filter.sortBy ?? "inductionDate"];
+  const orderClause = filter.sortDir === "asc" ? asc(sortColumn) : desc(sortColumn);
+
   const [rows, countResult] = await Promise.all([
     db
       .select()
       .from(repairPlannerEntries)
       .where(where)
-      .orderBy(desc(repairPlannerEntries.inductionDate))
+      .orderBy(orderClause)
       .limit(REPAIR_PLANNER_PAGE_SIZE)
       .offset((page - 1) * REPAIR_PLANNER_PAGE_SIZE),
     db.select({ total: count() }).from(repairPlannerEntries).where(where),
