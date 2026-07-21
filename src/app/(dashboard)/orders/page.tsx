@@ -5,8 +5,6 @@ import { getMasters } from "@/lib/masters";
 import { OrdersTable } from "./orders-table";
 import { AddOrderButton } from "./add-order-button";
 import { BulkAddOrdersButton } from "./bulk-add-orders-button";
-import { ActiveFilterChips } from "@/components/active-filter-chips";
-import { SavedViews } from "@/components/saved-views";
 
 interface PageProps {
   searchParams: Promise<{
@@ -92,17 +90,6 @@ export default async function OrdersPage({ searchParams }: PageProps) {
   };
 
   const canEdit = session?.user.role !== "viewer";
-  const anyColumnFilterActive = Boolean(
-    params.engineType ||
-      params.workCenter ||
-      params.uic ||
-      params.status ||
-      params.orderNumberLike ||
-      params.descriptionLike ||
-      params.serialNumberLike ||
-      params.locationLike ||
-      params.remarkLike,
-  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -118,43 +105,6 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           )}
         </div>
       </div>
-
-      <form className="flex flex-wrap gap-3" action="/orders">
-        <input
-          type="search"
-          name="q"
-          defaultValue={params.q}
-          placeholder="Search order #, description, serial, remark…"
-          className="min-w-[280px] flex-1 rounded-lg bg-surface border border-border px-3.5 py-2 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg"
-        />
-        <button
-          type="submit"
-          className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white"
-        >
-          Search
-        </button>
-        {anyColumnFilterActive && (
-          <Link
-            href="/orders"
-            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-text-secondary hover:text-text-primary"
-          >
-            Clear column filters
-          </Link>
-        )}
-        <Link
-          href={buildHref({ hideStore: params.hideStore === "1" ? undefined : "1", page: undefined })}
-          className={`rounded-full border px-5 py-2 text-sm font-medium ${
-            params.hideStore === "1"
-              ? "border-accent bg-accent-bg text-accent"
-              : "border-border text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          Hide serviceable store
-        </Link>
-        <SavedViews currentSearch={params} basePath="/orders" />
-      </form>
-
-      <ActiveFilterChips currentSearch={params} basePath="/orders" />
 
       <OrdersTable
         data={rows}

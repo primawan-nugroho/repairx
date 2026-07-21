@@ -40,6 +40,29 @@ import { ORDER_STATUSES } from "@/lib/order-status";
 import { useToast } from "@/components/toast";
 import { bulkUpdateOrderStatus } from "./actions";
 import { cn } from "@/lib/utils";
+import { ActiveFilterChips } from "@/components/active-filter-chips";
+import { SavedViews } from "@/components/saved-views";
+
+const COLUMN_FILTER_KEYS = [
+  "engineType",
+  "workCenter",
+  "uic",
+  "status",
+  "orderNumberLike",
+  "descriptionLike",
+  "serialNumberLike",
+  "locationLike",
+  "remarkLike",
+] as const;
+
+function buildOrdersHref(currentSearch: Record<string, string | undefined>, overrides: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  const merged = { ...currentSearch, ...overrides };
+  for (const [key, value] of Object.entries(merged)) {
+    if (value) params.set(key, value);
+  }
+  return `/orders?${params.toString()}`;
+}
 
 interface FilterOptions {
   engineType: string[];
@@ -370,6 +393,7 @@ export function OrdersTable({
 
   const selectedOrderNumbers = Object.keys(rowSelection).filter((id) => rowSelection[id]);
   const cellPad = density === "compact" ? "py-1" : "py-2.5";
+  const anyColumnFilterActive = COLUMN_FILTER_KEYS.some((key) => currentSearch[key]);
 
   function applyBulkStatus() {
     if (!bulkStatus || selectedOrderNumbers.length === 0) return;
@@ -386,37 +410,44 @@ export function OrdersTable({
     });
   }
 
+  const hideStoreActive = currentSearch.hideStore === "1";
+
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        {selectedOrderNumbers.length > 0 ? (
-          <div className="flex flex-1 items-center gap-2 rounded-lg border border-accent bg-accent-bg px-3 py-2">
-            <span className="text-sm font-medium text-accent">{selectedOrderNumbers.length} selected</span>
-            <Select value={bulkStatus} onValueChange={setBulkStatus}>
-              <SelectTrigger className="h-8 w-56 text-xs">
-                <SelectValue placeholder="Set status to…" />
-              </SelectTrigger>
-              <SelectContent>
-                {ORDER_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button type="button" size="sm" disabled={!bulkStatus || bulkPending} onClick={applyBulkStatus}>
-              {bulkPending ? "Applying…" : "Apply"}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setRowSelection({})}>
-              <X className="size-3.5" />
-              Clear
-            </Button>
-          </div>
-        ) : (
-          <div />
-        )}
+      <div className="flex flex-wrap items-center gap-3">
+        <form className="flex flex-wrap items-center gap-3" action="/orders">
+          <input
+            type="search"
+            name="q"
+            defaultValue={currentSearch.q}
+            placeholder="Search order #, description, serial, remark…"
+            className="h-9 min-w-[240px] flex-1 rounded-lg border border-border bg-surface px-3.5 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg"
+          />
+          <button type="submit" className="h-9 rounded-full bg-accent px-5 text-sm font-medium text-white">
+            Search
+          </button>
+          {anyColumnFilterActive && (
+            <Link
+              href="/orders"
+              className="flex h-9 items-center rounded-full border border-border px-5 text-sm font-medium text-text-secondary hover:text-text-primary"
+            >
+              Clear column filters
+            </Link>
+          )}
+          <Link
+            href={buildOrdersHref(currentSearch, { hideStore: hideStoreActive ? undefined : "1", page: undefined })}
+            className={cn(
+              "flex h-8 items-center rounded-full border px-3 text-xs font-medium",
+              hideStoreActive ? "border-accent bg-accent-bg text-accent" : "border-border text-text-secondary hover:text-text-primary",
+            )}
+          >
+            Hide serviceable store
+          </Link>
+        </form>
 
-        <div className="flex items-center gap-1.5">
+        <SavedViews currentSearch={currentSearch} basePath="/orders" />
+
+        <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setDensity(density === "compact" ? "comfortable" : "compact")}
@@ -486,6 +517,33 @@ export function OrdersTable({
           </DropdownMenu>
         </div>
       </div>
+
+      {selectedOrderNumbers.length > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-accent bg-accent-bg px-3 py-2">
+          <span className="text-sm font-medium text-accent">{selectedOrderNumbers.length} selected</span>
+          <Select value={bulkStatus} onValueChange={setBulkStatus}>
+            <SelectTrigger className="h-8 w-56 text-xs">
+              <SelectValue placeholder="Set status to…" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="button" size="sm" disabled={!bulkStatus || bulkPending} onClick={applyBulkStatus}>
+            {bulkPending ? "Applying…" : "Apply"}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setRowSelection({})}>
+            <X className="size-3.5" />
+            Clear
+          </Button>
+        </div>
+      )}
+
+      <ActiveFilterChips currentSearch={currentSearch} basePath="/orders" />
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
