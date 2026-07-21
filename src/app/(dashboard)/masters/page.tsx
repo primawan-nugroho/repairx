@@ -2,10 +2,12 @@ import { asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { getAllMastersForAdmin } from "@/lib/masters";
+import { getAllMastersForAdmin, getAllRepairPlannerMastersForAdmin } from "@/lib/masters";
 import { AddUserButton } from "./add-user-dialog";
 import { UsersTable } from "./users-table";
 import { EngineTypesPanel, UicTeamsPanel, WorkCentersPanel } from "./master-data-panels";
+import { NameListPanel } from "./name-list-panel";
+import { createRpcPerson, updateRpcPerson, deleteRpcPerson, createEngineOwner, updateEngineOwner, deleteEngineOwner } from "./repair-planner-master-actions";
 
 export default async function MastersPage() {
   const session = await auth();
@@ -70,6 +72,38 @@ async function MasterDataView() {
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text-primary">Work centers (MWC)</h2>
         <WorkCentersPanel rows={workCenters} uicTeams={uicTeams} />
+      </div>
+
+      <RepairPlannerMastersView />
+    </>
+  );
+}
+
+async function RepairPlannerMastersView() {
+  const { rpcPeople, engineOwners } = await getAllRepairPlannerMastersForAdmin();
+  return (
+    <>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-text-primary">RPC (repair production control)</h2>
+        <p className="-mt-2 text-xs text-text-tertiary">Assignable to the Repair Planner&rsquo;s RPC-1 and RPC-2 fields.</p>
+        <NameListPanel
+          rows={rpcPeople}
+          addPlaceholder="New RPC name, e.g. DENNY"
+          onCreate={createRpcPerson}
+          onUpdate={updateRpcPerson}
+          onDelete={deleteRpcPerson}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-text-primary">Engine owners (EO)</h2>
+        <NameListPanel
+          rows={engineOwners}
+          addPlaceholder="New EO name, e.g. ADITYA"
+          onCreate={createEngineOwner}
+          onUpdate={updateEngineOwner}
+          onDelete={deleteEngineOwner}
+        />
       </div>
     </>
   );

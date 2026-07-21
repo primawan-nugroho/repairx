@@ -4,32 +4,61 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { RepairPlannerEntry } from "@/db/schema";
 import { isEngineType } from "@/lib/engine-types";
+import { PLANNER_STATUSES } from "@/lib/planner-status";
 import { useDialogShortcuts } from "@/lib/use-dialog-shortcuts";
 import { useToast } from "@/components/toast";
 import { archiveRepairPlannerEntry, createRepairPlannerEntry, updateRepairPlannerEntry } from "./actions";
-
-interface DropdownOptions {
-  engineType: string[];
-  gate4Status: string[];
-  projectStatus: string[];
-  rpc1: string[];
-  rpc2: string[];
-}
 
 interface PlannerEntryDialogProps {
   entry?: RepairPlannerEntry;
   canEdit: boolean;
   onClose: () => void;
-  options: DropdownOptions;
-  /** Canonical engine/APU type list (see lib/masters.ts) — distinct from
-   * options.engineType, which is the column filter's list of values already present
-   * in this table's own rows. */
+  /** Canonical engine/APU type list (see lib/masters.ts) — distinct from any
+   * column-filter option list, which is just the values already present in this
+   * table's own rows. */
   engineTypes: string[];
+  rpcNames: string[];
+  eoNames: string[];
 }
 
 const BLANK: Partial<RepairPlannerEntry> = {};
 
-export function PlannerEntryDialog({ entry, canEdit, onClose, options, engineTypes }: PlannerEntryDialogProps) {
+/** Renders a select for a canonical-list field, preserving an existing value that
+ * isn't (or is no longer) in the list as a disabled "current" option — so saving the
+ * form without touching this field never silently wipes a legacy value that predates
+ * the canonical list (e.g. a name removed from Masters, or an old free-text status). */
+function CanonicalSelect({
+  name,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  options: string[];
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const hasLegacyValue = value && !options.includes(value);
+  return (
+    <select name={name} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input">
+      <option value="">— unset —</option>
+      {hasLegacyValue && (
+        <option value={value} disabled>
+          {value} (not in list)
+        </option>
+      )}
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function PlannerEntryDialog({ entry, canEdit, onClose, engineTypes, rpcNames, eoNames }: PlannerEntryDialogProps) {
   const isNew = !entry;
   const base = entry ?? BLANK;
   const router = useRouter();
@@ -39,6 +68,11 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options, engineTyp
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [engineType, setEngineType] = useState(isEngineType(base.engineType, engineTypes) ? base.engineType : "");
+  const [eo, setEo] = useState(base.eo ?? "");
+  const [rpc1, setRpc1] = useState(base.rpc1 ?? "");
+  const [rpc2, setRpc2] = useState(base.rpc2 ?? "");
+  const [gate4Status, setGate4Status] = useState(base.gate4Status ?? "");
+  const [projectStatus, setProjectStatus] = useState(base.projectStatus ?? "");
 
   useDialogShortcuts(formRef, onClose, canEdit && !confirmingDelete);
 
@@ -145,7 +179,7 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options, engineTyp
           </Field>
 
           <Field label="EO">
-            <input name="eo" defaultValue={base.eo ?? ""} disabled={!canEdit} className="field-input" />
+            <CanonicalSelect name="eo" value={eo} options={eoNames} disabled={!canEdit} onChange={setEo} />
           </Field>
           <Field label="Induction date">
             <input
@@ -169,61 +203,29 @@ export function PlannerEntryDialog({ entry, canEdit, onClose, options, engineTyp
           </div>
 
           <Field label="RPC-1">
-            <input
-              name="rpc1"
-              list="dl-rpc1"
-              defaultValue={base.rpc1 ?? ""}
-              disabled={!canEdit}
-              className="field-input"
-            />
-            <datalist id="dl-rpc1">
-              {options.rpc1.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
+            <CanonicalSelect name="rpc1" value={rpc1} options={rpcNames} disabled={!canEdit} onChange={setRpc1} />
           </Field>
           <Field label="RPC-2">
-            <input
-              name="rpc2"
-              list="dl-rpc2"
-              defaultValue={base.rpc2 ?? ""}
-              disabled={!canEdit}
-              className="field-input"
-            />
-            <datalist id="dl-rpc2">
-              {options.rpc2.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
+            <CanonicalSelect name="rpc2" value={rpc2} options={rpcNames} disabled={!canEdit} onChange={setRpc2} />
           </Field>
 
           <Field label="Gate 4 status">
-            <input
+            <CanonicalSelect
               name="gate4Status"
-              list="dl-gate4"
-              defaultValue={base.gate4Status ?? ""}
+              value={gate4Status}
+              options={[...PLANNER_STATUSES]}
               disabled={!canEdit}
-              className="field-input"
+              onChange={setGate4Status}
             />
-            <datalist id="dl-gate4">
-              {options.gate4Status.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
           </Field>
           <Field label="Project status">
-            <input
+            <CanonicalSelect
               name="projectStatus"
-              list="dl-project-status"
-              defaultValue={base.projectStatus ?? ""}
+              value={projectStatus}
+              options={[...PLANNER_STATUSES]}
               disabled={!canEdit}
-              className="field-input"
+              onChange={setProjectStatus}
             />
-            <datalist id="dl-project-status">
-              {options.projectStatus.map((v) => (
-                <option key={v} value={v} />
-              ))}
-            </datalist>
           </Field>
 
           <div className="md:col-span-2">

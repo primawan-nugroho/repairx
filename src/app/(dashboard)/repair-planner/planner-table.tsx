@@ -36,6 +36,8 @@ export function PlannerTable({
   filterOptions,
   rpcColorMap,
   engineTypes,
+  rpcNames,
+  eoNames,
 }: {
   data: RepairPlannerEntry[];
   canEdit: boolean;
@@ -43,6 +45,8 @@ export function PlannerTable({
   filterOptions: FilterOptions;
   rpcColorMap: Record<string, string>;
   engineTypes: string[];
+  rpcNames: string[];
+  eoNames: string[];
 }) {
   const [editingEntry, setEditingEntry] = useState<RepairPlannerEntry | null>(null);
 
@@ -294,14 +298,9 @@ export function PlannerTable({
           entry={editingEntry}
           canEdit={canEdit}
           onClose={() => setEditingEntry(null)}
-          options={{
-            engineType: filterOptions.engineType,
-            gate4Status: filterOptions.gate4Status,
-            projectStatus: filterOptions.projectStatus,
-            rpc1: filterOptions.rpc1,
-            rpc2: filterOptions.rpc2,
-          }}
           engineTypes={engineTypes}
+          rpcNames={rpcNames}
+          eoNames={eoNames}
         />
       )}
     </>

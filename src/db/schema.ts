@@ -196,3 +196,23 @@ export const workCenters = pgTable("work_centers", {
 export type EngineTypeRow = typeof engineTypes.$inferSelect;
 export type UicTeamRow = typeof uicTeams.$inferSelect;
 export type WorkCenterRow = typeof workCenters.$inferSelect;
+
+// Repair Planner master lists — RPC-1/RPC-2 (repair production control assignee) and
+// EO (engine owner) are plain free-text columns on repair_planner_entries (no FK),
+// so unlike engine types/UIC teams these are hard-deleted rather than deactivated:
+// deleting a name here can never orphan a reference, it just stops offering that name
+// for new assignments while old entries keep their stored text untouched.
+export const rpcPeople = pgTable("rpc_people", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const engineOwners = pgTable("engine_owners", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type RpcPersonRow = typeof rpcPeople.$inferSelect;
+export type EngineOwnerRow = typeof engineOwners.$inferSelect;

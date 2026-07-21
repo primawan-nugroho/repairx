@@ -12,7 +12,8 @@
     "db:studio": "drizzle-kit studio",
     "import:excel": "tsx scripts/import-excel.ts",
     "create-user": "tsx scripts/create-user.ts",
-    "seed-masters": "tsx scripts/seed-masters.ts"
+    "seed-masters": "tsx scripts/seed-masters.ts",
+    "seed-planner-masters": "tsx scripts/seed-repair-planner-masters.ts"
   },
   "dependencies": {
     "@dicebear/core": "^10.2.0",

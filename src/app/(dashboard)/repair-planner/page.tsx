@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDistinctRepairPlannerValues, getRepairPlannerEntries, REPAIR_PLANNER_PAGE_SIZE } from "@/lib/repair-planner";
-import { getMasters } from "@/lib/masters";
+import { getMasters, getRepairPlannerMasters } from "@/lib/masters";
 import { buildPersonColorMap } from "@/lib/utils";
 import { PlannerTable } from "./planner-table";
 import { AddEntryButton } from "./add-entry-button";
@@ -48,6 +48,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
     projectOptions,
     remarkOptions,
     masters,
+    plannerMasters,
   ] = await Promise.all([
     getRepairPlannerEntries({
       q: params.q,
@@ -78,6 +79,7 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
     getDistinctRepairPlannerValues("projectStatus"),
     getDistinctRepairPlannerValues("remark"),
     getMasters(),
+    getRepairPlannerMasters(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / REPAIR_PLANNER_PAGE_SIZE));
@@ -116,14 +118,9 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
           <span className="data-mono text-sm text-text-secondary">{total} total</span>
           {canEdit && (
             <AddEntryButton
-              options={{
-                engineType: engineTypeOptions,
-                gate4Status: gate4Options,
-                projectStatus: projectOptions,
-                rpc1: rpc1Options,
-                rpc2: rpc2Options,
-              }}
               engineTypes={masters.engineTypes}
+              rpcNames={plannerMasters.rpcNames}
+              eoNames={plannerMasters.eoNames}
             />
           )}
         </div>
@@ -173,6 +170,8 @@ export default async function RepairPlannerPage({ searchParams }: PageProps) {
           remark: remarkOptions,
         }}
         engineTypes={masters.engineTypes}
+        rpcNames={plannerMasters.rpcNames}
+        eoNames={plannerMasters.eoNames}
       />
 
       <div className="flex items-center justify-between">

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { engineTypes, uicTeams, workCenters } from "@/db/schema";
+import { engineTypes, uicTeams, workCenters, rpcPeople, engineOwners } from "@/db/schema";
 
 export interface OrderMasters {
   engineTypes: string[];
@@ -60,4 +60,32 @@ export async function getAllMastersForAdmin() {
     db.select().from(workCenters).orderBy(asc(workCenters.code)),
   ]);
   return { engineTypes: allEngineTypes, uicTeams: allUicTeams, workCenters: allWorkCenters };
+}
+
+export interface RepairPlannerMasters {
+  rpcNames: string[];
+  eoNames: string[];
+}
+
+/** RPC-1/RPC-2 assignee names and EO (engine owner) names for the Repair Planner
+ * dialog's dropdowns — admin-editable from /masters (see
+ * repair-planner-master-actions.ts). Both lists are alphabetic (see rpcPeople/
+ * engineOwners schema comments — plain free-text fields, no active flag, since a
+ * deleted name can never orphan a reference). */
+export const getRepairPlannerMasters = cache(async (): Promise<RepairPlannerMasters> => {
+  const [rpcRows, eoRows] = await Promise.all([
+    db.select({ name: rpcPeople.name }).from(rpcPeople).orderBy(asc(rpcPeople.name)),
+    db.select({ name: engineOwners.name }).from(engineOwners).orderBy(asc(engineOwners.name)),
+  ]);
+  return { rpcNames: rpcRows.map((r) => r.name), eoNames: eoRows.map((r) => r.name) };
+});
+
+/** Full rows (id + name) for the Masters admin page's edit/delete controls — the
+ * plain name-string list above is what the rest of the app's dropdowns use. */
+export async function getAllRepairPlannerMastersForAdmin() {
+  const [allRpc, allEo] = await Promise.all([
+    db.select().from(rpcPeople).orderBy(asc(rpcPeople.name)),
+    db.select().from(engineOwners).orderBy(asc(engineOwners.name)),
+  ]);
+  return { rpcPeople: allRpc, engineOwners: allEo };
 }
