@@ -42,7 +42,19 @@ function CanonicalSelect({
 }) {
   const hasLegacyValue = value && !options.includes(value);
   return (
-    <select name={name} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input">
+    <select
+      name={name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      // Plain Tailwind utilities rather than the "field-input" class used elsewhere
+      // in this dialog: that class is defined in a <style jsx> block scoped by
+      // Next.js to elements written directly inside PlannerEntryDialog's own JSX,
+      // so it never reaches a select rendered by this separate component (styled-jsx
+      // scoping doesn't cross component boundaries) — same class of bug as the
+      // transparent-dropdown fixes elsewhere in this app.
+      className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent-bg disabled:opacity-70"
+    >
       <option value="">— unset —</option>
       {hasLegacyValue && (
         <option value={value} disabled>
