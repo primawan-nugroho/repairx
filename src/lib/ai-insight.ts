@@ -48,7 +48,16 @@ Average turnaround time (date in to reaching the serviceable store): ${
     summary.tat.avgDays !== null ? `${summary.tat.avgDays} days (based on ${summary.tat.sampleSize} orders)` : "not enough data yet"
   }.
 
-Write a shift-handover briefing for a production-control supervisor in 4-6 sentences: what moved, what's stalled, which UIC/work team is under the most load, and what should be prioritized on the next shift's Daily Menu. Then on a new line starting exactly with "Bottleneck: " give one specific, single-sentence callout using only the numbers above. Do not invent order numbers, dates, or facts not listed above. Do not use markdown formatting.`;
+Write a shift-handover briefing for a production-control supervisor. Rules:
+- Output 3 to 5 bullet points, each on its own line starting with "- ".
+- Keep each bullet to one line, roughly 15-20 words.
+- Lead with the single most urgent, action-demanding item.
+- Every bullet must either combine two or more facts into one insight (e.g. an order that is BOTH overdue AND has had no shift activity, or a UIC whose load dwarfs every other team) or quantify a comparison (N of M, X times higher). Do not just restate a single number.
+- Each bullet must name a concrete action (escalate, scrap, chase material, load-balance, re-plan) — never vague filler like "should be reviewed", "needs attention", or "may require support".
+- Do not restate the plain totals a supervisor can already see (total open orders, count in the serviceable store, planner WIP) unless the number itself forces a specific decision.
+- Prefer naming specific order numbers or UIC teams over general statements.
+Then on a new line starting exactly with "Bottleneck: " give one specific, single-sentence callout naming the most overloaded team and how far ahead of the next team it is, using only the numbers above.
+Do not invent order numbers, dates, or facts not listed above. Do not use markdown bold, headers, or nested bullets — only the flat "- " lines described.`;
 }
 
 /** Calls Groq's free-tier chat completion API server-side (the key never reaches the
@@ -77,7 +86,7 @@ async function callGroq(prompt: string): Promise<string> {
         { role: "user", content: prompt },
       ],
       temperature: 0.3,
-      max_tokens: 400,
+      max_tokens: 250,
     }),
   });
 

@@ -35,6 +35,15 @@ export function AiInsightCard({ initialContent, generatedAt }: AiInsightCardProp
   const briefing = bottleneckIndex > -1 ? content!.slice(0, bottleneckIndex).trim() : content;
   const bottleneck = bottleneckIndex > -1 ? content!.slice(bottleneckIndex + "Bottleneck:".length).trim() : null;
 
+  // The prompt asks for "- " bullet lines (see lib/ai-insight.ts). Strip the marker
+  // and render as a real list. Falls back to a plain paragraph when the model returns
+  // prose anyway or an older cached briefing (written before the bullet format) loads.
+  const bullets = (briefing ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^[-•*]\s+/.test(line))
+    .map((line) => line.replace(/^[-•*]\s+/, ""));
+
   return (
     <div className="bg-surface-solid flex flex-col gap-3 rounded-lg border border-border p-5">
       <div className="flex items-center justify-between">
@@ -69,7 +78,21 @@ export function AiInsightCard({ initialContent, generatedAt }: AiInsightCardProp
         </p>
       )}
 
-      {briefing && <p className="whitespace-pre-line text-sm text-text-primary">{briefing}</p>}
+      {briefing &&
+        (bullets.length > 0 ? (
+          <ul className="flex flex-col gap-1.5 text-sm text-text-primary">
+            {bullets.map((b, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-0.5 text-text-tertiary" aria-hidden>
+                  •
+                </span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="whitespace-pre-line text-sm text-text-primary">{briefing}</p>
+        ))}
       {bottleneck && (
         <p className="rounded-lg bg-status-waiting/10 px-3 py-2 text-sm font-medium text-status-waiting">
           Bottleneck: {bottleneck}
