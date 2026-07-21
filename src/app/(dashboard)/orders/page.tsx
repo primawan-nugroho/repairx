@@ -5,6 +5,8 @@ import { getMasters } from "@/lib/masters";
 import { OrdersTable } from "./orders-table";
 import { AddOrderButton } from "./add-order-button";
 import { BulkAddOrdersButton } from "./bulk-add-orders-button";
+import { ActiveFilterChips } from "@/components/active-filter-chips";
+import { SavedViews } from "@/components/saved-views";
 
 interface PageProps {
   searchParams: Promise<{
@@ -149,7 +151,10 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         >
           Hide serviceable store
         </Link>
+        <SavedViews currentSearch={params} basePath="/orders" />
       </form>
+
+      <ActiveFilterChips currentSearch={params} basePath="/orders" />
 
       <OrdersTable
         data={rows}

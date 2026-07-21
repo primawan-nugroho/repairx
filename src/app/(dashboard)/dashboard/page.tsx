@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getCachedInsight } from "@/lib/ai-insight";
@@ -21,7 +22,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <KpiTile label="Open orders" value={summary.totalOrders} href="/orders" />
+        <KpiTile
+          label="Open orders"
+          value={summary.totalOrders}
+          href="/orders"
+          trend={{ delta: summary.backlogTrend.delta, goodDirection: "down" }}
+        />
         <KpiTile
           label="In serviceable store"
           value={summary.inServiceableStore}
@@ -140,7 +146,21 @@ export default async function DashboardPage() {
   );
 }
 
-function KpiTile({ label, value, sub, href }: { label: string; value: number; sub?: string; href: string }) {
+function KpiTile({
+  label,
+  value,
+  sub,
+  href,
+  trend,
+}: {
+  label: string;
+  value: number;
+  sub?: string;
+  href: string;
+  /** goodDirection: which sign of delta counts as improving — "down" for a metric
+   * like backlog where shrinking is good, "up" for one where growing is good. */
+  trend?: { delta: number; goodDirection: "up" | "down" };
+}) {
   return (
     <Card asChild className="transition-colors hover:border-border-strong">
       <Link href={href}>
@@ -148,9 +168,33 @@ function KpiTile({ label, value, sub, href }: { label: string; value: number; su
           <span className="text-xs font-medium text-text-secondary">{label}</span>
           <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
           {sub && <span className="text-xs text-text-tertiary">{sub}</span>}
+          {trend && <TrendBadge {...trend} />}
         </CardContent>
       </Link>
     </Card>
+  );
+}
+
+function TrendBadge({ delta, goodDirection }: { delta: number; goodDirection: "up" | "down" }) {
+  if (delta === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-text-tertiary">
+        <Minus className="size-3" />
+        No change this week
+      </span>
+    );
+  }
+  const improving = goodDirection === "down" ? delta < 0 : delta > 0;
+  const Icon = delta > 0 ? ArrowUp : ArrowDown;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+        improving ? "text-status-closed" : "text-status-urgent"
+      }`}
+    >
+      <Icon className="size-3" />
+      {Math.abs(delta)} this week
+    </span>
   );
 }
 

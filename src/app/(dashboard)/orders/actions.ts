@@ -214,3 +214,20 @@ export async function archiveOrder(orderNumber: string) {
 
   revalidatePath("/orders");
 }
+
+/** Bulk status override for a set of selected orders. Doesn't attempt to respect the
+ * terminal-UIC auto-status rule (see deriveStatus in wc-uic-map.ts) — a part sitting
+ * in the serviceable store will just get its status corrected the next time it's
+ * opened in the edit dialog, same as any other manual status edit. */
+export async function bulkUpdateOrderStatus(orderNumbers: string[], status: string) {
+  await requireEditor();
+  const targets = orderNumbers.map((n) => n.trim()).filter(Boolean);
+  if (targets.length === 0) return;
+
+  await db
+    .update(orders)
+    .set({ status, updatedAt: new Date() })
+    .where(inArray(orders.orderNumber, targets));
+
+  revalidatePath("/orders");
+}

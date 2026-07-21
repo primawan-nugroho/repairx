@@ -16,7 +16,10 @@
   --sidebar: rgba(255, 255, 255, 0.7);
   --text-primary: #1d1d1f;
   --text-secondary: #6e6e73;
-  --text-tertiary: #98989d;
+  /* Darkened from #98989d — the original sat at ~2.6:1 against --canvas, below
+     WCAG AA's 3:1 floor even for large text. #7c7c82 clears ~3.4:1 while staying
+     visibly dimmer than --text-secondary. */
+  --text-tertiary: #7c7c82;
   --border: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.14);
   --accent: #0071e3;
@@ -66,7 +69,10 @@
   --sidebar: rgba(30, 30, 32, 0.7);
   --text-primary: #f5f5f7;
   --text-secondary: #98989d;
-  --text-tertiary: #6e6e73;
+  /* Lightened from #6e6e73 — the original sat at ~3.3:1 against --canvas, below
+     WCAG AA's 4.5:1 floor for normal-size text. #86868b clears ~4.5:1 while
+     staying visibly dimmer than --text-secondary. */
+  --text-tertiary: #86868b;
   --border: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.16);
   --accent: #409cff;

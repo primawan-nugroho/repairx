@@ -67,6 +67,11 @@ export interface DashboardSummary {
   tatByEngineType: Array<{ label: string; avgDays: number; sampleSize: number }>;
   agingBuckets: Array<{ label: string; count: number }>;
   weeklyThroughput: Array<{ weekLabel: string; intake: number; completed: number }>;
+  /** Net backlog change over the most recent week bucket in weeklyThroughput
+   * (intake - completed) — positive means the queue grew, negative means it shrank.
+   * Derived from data already fetched for the throughput chart rather than a
+   * separate query. */
+  backlogTrend: { delta: number };
 }
 
 /** Every number the Dashboard (and the AI insight prompt) is built from — one place
@@ -174,6 +179,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ]);
 
   const summary = summarize(lastShiftEntries);
+  const lastWeek = weeklyThroughput[weeklyThroughput.length - 1];
+  const backlogTrend = { delta: (lastWeek?.intake ?? 0) - (lastWeek?.completed ?? 0) };
 
   return {
     today,
@@ -193,6 +200,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     tatByEngineType: turnaround.tatByEngineType,
     agingBuckets: turnaround.agingBuckets,
     weeklyThroughput,
+    backlogTrend,
   };
 }
 
