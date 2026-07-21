@@ -31,6 +31,15 @@
   --status-urgent: #d70015;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
 
+  /* Opaque, accent-tinted surface for sticky/frozen table columns (Orders table) —
+     DESIGN.md's Level-2 rule (opaque, not vibrancy, for anything sitting over
+     scrolling content) plus a faint blue wash so the frozen block reads as
+     deliberately pinned rather than a rendering glitch. Never translucent: a
+     frozen column sits over the columns scrolling underneath it, so --surface's
+     blur/alpha would let them bleed through. */
+  --frozen-surface: #ebf4fd;
+  --frozen-surface-hover: #dbebfb;
+
   /* Categorical UIC palette — one hue per unit-in-charge team (see wc-uic-map.ts).
      Work centers inherit their mapped UIC's hue. "unmapped" is the gray fallback
      for legacy data predating the mapping rule. */
@@ -84,6 +93,11 @@
   --status-urgent: #ff453a;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
 
+  /* See the light-theme block's comment — same opaque accent-tinted frozen-column
+     surface, tuned for the dark canvas. */
+  --frozen-surface: #2e3947;
+  --frozen-surface-hover: #304258;
+
   --uic-a: #a78bfa;
   --uic-b: #fb923c;
   --uic-c: #2dd4bf;
@@ -118,6 +132,8 @@
   --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-bg: var(--accent-bg);
+  --color-frozen-surface: var(--frozen-surface);
+  --color-frozen-surface-hover: var(--frozen-surface-hover);
   --color-status-open: var(--status-open);
   --color-status-progress: var(--status-progress);
   --color-status-closed: var(--status-closed);

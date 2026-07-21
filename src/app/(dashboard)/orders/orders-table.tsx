@@ -48,11 +48,12 @@ interface FilterOptions {
   status: string[];
 }
 
-// select + orderNumber are always shown, always first, and pinned via the sticky
-// classes below — only the remaining columns can be hidden or reordered.
+// select + orderNumber + description + serialNumber are always shown, always
+// first, and pinned via the frozen-column styling below — only the remaining
+// columns can be hidden or reordered. Frozen columns can't sensibly be hidden or
+// reordered independent of each other (the sticky left-offset math assumes this
+// exact order), so they're deliberately excluded from this list.
 const REORDERABLE_COLUMNS: Array<{ id: string; label: string }> = [
-  { id: "description", label: "Description" },
-  { id: "serialNumber", label: "Serial number" },
   { id: "engineType", label: "Engine type" },
   { id: "mwcToday", label: "Work center" },
   { id: "uicToday", label: "UIC" },
@@ -60,6 +61,18 @@ const REORDERABLE_COLUMNS: Array<{ id: string; label: string }> = [
   { id: "location", label: "Location" },
   { id: "remark", label: "Remark" },
 ];
+
+// Pixel widths for the frozen block (select? + orderNumber + description +
+// serialNumber), in render order — fixed rather than content-sized so the sticky
+// left-offset of each frozen column stays stable across every row regardless of
+// content length. Description's inner clamp (below) is sized to fit inside its
+// 200px column net of padding.
+const FROZEN_WIDTHS: Record<string, number> = {
+  select: 36,
+  orderNumber: 168,
+  description: 200,
+  serialNumber: 120,
+};
 
 const DENSITY_KEY = "repairx-orders-density";
 const VISIBILITY_KEY = "repairx-orders-column-visibility";
@@ -97,7 +110,15 @@ export function OrdersTable({
       const savedDensity = localStorage.getItem(DENSITY_KEY);
       if (savedDensity === "compact" || savedDensity === "comfortable") setDensity(savedDensity);
       const savedVisibility = localStorage.getItem(VISIBILITY_KEY);
-      if (savedVisibility) setColumnVisibility(JSON.parse(savedVisibility));
+      if (savedVisibility) {
+        const parsed: VisibilityState = JSON.parse(savedVisibility);
+        // Strip any stale keys for columns that are no longer hideable (description/
+        // serialNumber moved into the frozen block) — a value saved by an older
+        // version of this component could otherwise hide a now-frozen column.
+        const hideableIds = new Set(REORDERABLE_COLUMNS.map((c) => c.id));
+        const filtered = Object.fromEntries(Object.entries(parsed).filter(([id]) => hideableIds.has(id)));
+        setColumnVisibility(filtered);
+      }
       const savedOrder = localStorage.getItem(ORDER_KEY);
       if (savedOrder) {
         const parsed: string[] = JSON.parse(savedOrder);
@@ -161,7 +182,7 @@ export function OrdersTable({
           <ColumnFilter basePath="/orders" label="Description" paramKey="descriptionLike" currentSearch={currentSearch} type="text" />,
           "description",
         ),
-      cell: (info) => <span className="line-clamp-1 max-w-[260px]">{info.getValue() || "-"}</span>,
+      cell: (info) => <span className="line-clamp-1 max-w-[170px]">{info.getValue() || "-"}</span>,
     }),
     serialNumber: columnHelper.accessor("serialNumber", {
       header: () =>
@@ -288,6 +309,8 @@ export function OrdersTable({
         ),
         enableHiding: false,
       }),
+      { ...dataColumns.description, enableHiding: false },
+      { ...dataColumns.serialNumber, enableHiding: false },
       ...movableOrder.map((id) => dataColumns[id as keyof typeof dataColumns]),
     ],
     // dataColumns is rebuilt every render (closes over per-row state setters); movableOrder/canEdit are the only
@@ -296,10 +319,23 @@ export function OrdersTable({
     [movableOrder, canEdit, currentSearch, filterOptions, masters],
   );
 
-  const columnOrder = useMemo(
-    () => [...(canEdit ? ["select"] : []), "orderNumber", ...movableOrder],
-    [canEdit, movableOrder],
-  );
+  // Fixed frozen sequence (select?, orderNumber, description, serialNumber) followed
+  // by the user-hideable/reorderable columns — see FROZEN_WIDTHS/REORDERABLE_COLUMNS.
+  const frozenOrder = useMemo(() => [...(canEdit ? ["select"] : []), "orderNumber", "description", "serialNumber"], [canEdit]);
+
+  const frozenLeft = useMemo(() => {
+    const map: Record<string, number> = {};
+    let acc = 0;
+    for (const id of frozenOrder) {
+      map[id] = acc;
+      acc += FROZEN_WIDTHS[id] ?? 0;
+    }
+    return map;
+  }, [frozenOrder]);
+
+  const lastFrozenId = frozenOrder[frozenOrder.length - 1];
+
+  const columnOrder = useMemo(() => [...frozenOrder, ...movableOrder], [frozenOrder, movableOrder]);
 
   const table = useReactTable({
     data,
@@ -436,18 +472,23 @@ export function OrdersTable({
           <thead className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={cn(
-                      "whitespace-nowrap border-b border-border bg-surface px-3 py-2.5 text-left text-xs font-medium text-text-secondary",
-                      header.column.id === "orderNumber" && cn("sticky z-20", canEdit ? "left-9" : "left-0"),
-                      header.column.id === "select" && "sticky left-0 z-20 w-9",
-                    )}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const id = header.column.id;
+                  const isFrozen = id in frozenLeft;
+                  return (
+                    <th
+                      key={header.id}
+                      style={isFrozen ? { left: frozenLeft[id], width: FROZEN_WIDTHS[id], minWidth: FROZEN_WIDTHS[id] } : undefined}
+                      className={cn(
+                        "whitespace-nowrap border-b border-border px-3 py-2.5 text-left text-xs font-medium text-text-secondary",
+                        isFrozen ? "sticky z-20 bg-frozen-surface" : "bg-surface",
+                        id === lastFrozenId && "shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]",
+                      )}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -460,20 +501,28 @@ export function OrdersTable({
                   rowIndex % 2 === 1 && "bg-black/[0.015] dark:bg-white/[0.02]",
                 )}
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      "whitespace-nowrap px-3 align-middle",
-                      cellPad,
-                      cell.column.id === "select" && "sticky left-0 z-[1] bg-canvas group-hover:bg-surface",
-                      cell.column.id === "orderNumber" &&
-                        cn("sticky z-[1] bg-canvas group-hover:bg-surface", canEdit ? "left-9" : "left-0"),
-                    )}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const id = cell.column.id;
+                  const isFrozen = id in frozenLeft;
+                  return (
+                    <td
+                      key={cell.id}
+                      style={isFrozen ? { left: frozenLeft[id], width: FROZEN_WIDTHS[id], minWidth: FROZEN_WIDTHS[id] } : undefined}
+                      className={cn(
+                        "whitespace-nowrap px-3 align-middle",
+                        cellPad,
+                        // Frozen cells stay a single opaque, accent-tinted color regardless
+                        // of row parity — no zebra stripe inside the pinned block, and never
+                        // the translucent --surface (which would let scrolled-under columns
+                        // bleed through), per DESIGN.md's opaque-over-content rule.
+                        isFrozen && "sticky z-[1] bg-frozen-surface group-hover:bg-frozen-surface-hover",
+                        id === lastFrozenId && "shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]",
+                      )}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
             {table.getRowModel().rows.length === 0 && (
