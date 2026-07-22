@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,7 @@ export function AvatarMenu({
   collapsed?: boolean;
 }) {
   const [changingPassword, setChangingPassword] = useState(false);
+  const [, startTransition] = useTransition();
 
   const avatarButton = (
     <span
@@ -90,13 +91,11 @@ export function AvatarMenu({
           <div className="p-1.5">
             <DropdownMenuItem onSelect={() => setChangingPassword(true)}>Change password</DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
-            <form action={signOutAction}>
-              <DropdownMenuItem asChild>
-                <button type="submit" className="w-full text-left">
-                  Sign out
-                </button>
-              </DropdownMenuItem>
-            </form>
+            {/* Not a <form action={signOutAction}> submit button: Radix closes (unmounts)
+                the dropdown synchronously on select, which races the browser's native
+                form-submission and can cancel it before the request ever fires — call
+                the action directly instead, decoupled from the menu's own lifecycle. */}
+            <DropdownMenuItem onSelect={() => startTransition(async () => await signOutAction())}>Sign out</DropdownMenuItem>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
