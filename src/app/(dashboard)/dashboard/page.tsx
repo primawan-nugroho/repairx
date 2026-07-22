@@ -4,22 +4,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getCachedInsight } from "@/lib/ai-insight";
 import { getMasters } from "@/lib/masters";
+import { auth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
+import { greeting } from "@/lib/shift";
 import { StatusDonutChart, UicDonutChart, MetricBarChart, ThroughputBarChart } from "./dashboard-charts";
 import { AiInsightCard } from "./ai-insight-card";
 
 export default async function DashboardPage() {
-  const [summary, masters] = await Promise.all([getDashboardSummary(), getMasters()]);
+  const [summary, masters, session] = await Promise.all([getDashboardSummary(), getMasters(), auth()]);
   const cachedInsight = await getCachedInsight(summary.today, summary.shift);
+  const firstName = session?.user.name?.split(" ")[0] ?? session?.user.username ?? "";
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">
+          {greeting()}, {firstName}
+        </h1>
         <p className="text-sm text-text-secondary">
           {formatDate(summary.today)} · {summary.shift} shift
         </p>
       </div>
+
+      <h2 className="border-b border-border pb-2 text-sm font-semibold text-text-primary">Overview</h2>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <KpiTile
@@ -162,16 +169,15 @@ function KpiTile({
   trend?: { delta: number; goodDirection: "up" | "down" };
 }) {
   return (
-    <Card asChild className="transition-colors hover:border-border-strong">
-      <Link href={href}>
-        <CardContent>
-          <span className="text-xs font-medium text-text-secondary">{label}</span>
-          <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
-          {sub && <span className="text-xs text-text-tertiary">{sub}</span>}
-          {trend && <TrendBadge {...trend} />}
-        </CardContent>
-      </Link>
-    </Card>
+    <Link
+      href={href}
+      className="group flex flex-col gap-1 border-t border-border pt-3 transition-opacity hover:opacity-80"
+    >
+      <span className="text-xs font-medium text-text-secondary">{label}</span>
+      <span className="data-mono text-2xl font-semibold text-text-primary">{value}</span>
+      {sub && <span className="text-xs text-text-tertiary">{sub}</span>}
+      {trend && <TrendBadge {...trend} />}
+    </Link>
   );
 }
 

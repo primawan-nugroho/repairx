@@ -101,7 +101,12 @@ export function SidebarLogoButton({ collapsed }: { collapsed: boolean }) {
         height={collapsed ? 32 : 24}
         className="dark:invert"
       />
-      {!collapsed && <span className="text-[17px] font-semibold text-text-primary">RepairX</span>}
+      {!collapsed && (
+        <span className="flex flex-col items-start leading-tight">
+          <span className="text-[16px] font-semibold text-text-primary">RepairX</span>
+          <span className="text-[10px] text-text-secondary">Aviation MRO Repair Monitoring</span>
+        </span>
+      )}
     </button>
   );
 }

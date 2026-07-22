@@ -16,3 +16,19 @@ export function currentShift(): Shift {
   if (hour < 22) return "PM";
   return "Overtime";
 }
+
+// Dashboard greeting by wall-clock time (WIB) — separate from the shift boundaries
+// above since "Good morning" vs. AM/PM/Overtime are different concepts that happen
+// to both key off the current WIB hour.
+export function greeting(): string {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Jakarta",
+    }).format(new Date()),
+  );
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}

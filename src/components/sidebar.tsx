@@ -3,8 +3,17 @@
 import { cn } from "@/lib/utils";
 import { NavLinks } from "@/components/nav-links";
 import { useSidebarState, SidebarLogoButton } from "@/components/sidebar-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { AvatarMenu } from "@/components/avatar-menu";
 
-export function Sidebar() {
+interface SidebarProps {
+  name: string;
+  role: string;
+  username: string;
+  avatarSvg: string;
+}
+
+export function Sidebar({ name, role, username, avatarSvg }: SidebarProps) {
   const { collapsed, mobileOpen, closeMobile } = useSidebarState();
 
   return (
@@ -21,6 +30,14 @@ export function Sidebar() {
           <SidebarLogoButton collapsed={collapsed} />
         </div>
         <NavLinks collapsed={collapsed} />
+
+        <div className="flex flex-col gap-1 border-t border-border p-3">
+          <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between")}>
+            {!collapsed && <span className="text-sm text-text-secondary">Switch theme</span>}
+            <ThemeToggle />
+          </div>
+          <AvatarMenu avatarSvg={avatarSvg} name={name} role={role} username={username} variant="sidebar" collapsed={collapsed} />
+        </div>
       </aside>
 
       {/* Mobile: off-canvas slide-over. No collapse state here — it's either open
@@ -32,7 +49,10 @@ export function Sidebar() {
             <div className="flex items-center justify-between px-4 py-5">
               <div className="flex items-center gap-2">
                 <img src="/logo_only_black.png" alt="" width={24} height={24} className="dark:invert" />
-                <span className="text-[17px] font-semibold text-text-primary">RepairX</span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-[16px] font-semibold text-text-primary">RepairX</span>
+                  <span className="text-[10px] text-text-secondary">Aviation MRO Repair Monitoring</span>
+                </span>
               </div>
               <button
                 onClick={closeMobile}
@@ -44,6 +64,14 @@ export function Sidebar() {
             </div>
             <div onClick={closeMobile}>
               <NavLinks />
+            </div>
+
+            <div className="flex flex-col gap-1 border-t border-border p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">Switch theme</span>
+                <ThemeToggle />
+              </div>
+              <AvatarMenu avatarSvg={avatarSvg} name={name} role={role} username={username} variant="sidebar" />
             </div>
           </aside>
         </div>

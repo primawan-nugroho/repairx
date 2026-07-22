@@ -3,11 +3,7 @@ import { auth } from "@/lib/auth";
 import { generateAvatarSvg } from "@/lib/avatar";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarToggleButton } from "@/components/sidebar-toggle";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { AvatarMenu } from "@/components/avatar-menu";
 import { ToastProvider } from "@/components/toast";
-import { formatDate } from "@/lib/utils";
-import { currentShift } from "@/lib/shift";
 
 export default async function DashboardLayout({
   children,
@@ -21,24 +17,30 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
-      <div className="flex min-h-screen bg-canvas">
-        <Sidebar />
+      {/* h-screen + overflow-hidden here, not min-h-screen: the sidebar (and its
+          footer — theme toggle, account menu) must stay pinned to the viewport
+          regardless of how tall a given page's content is. Only <main> below
+          scrolls internally; the sidebar and mobile strip don't move with it. */}
+      <div className="flex h-screen overflow-hidden bg-canvas">
+        <Sidebar
+          name={session.user.name ?? ""}
+          role={session.user.role}
+          username={session.user.username}
+          avatarSvg={avatarSvg}
+        />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="vibrancy flex h-[52px] items-center justify-between border-b border-border px-4">
-            <div className="flex items-center gap-2">
-              <SidebarToggleButton />
-              <span className="data-mono text-sm text-text-secondary">
-                {formatDate(new Date())} · {currentShift()} shift
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <AvatarMenu avatarSvg={avatarSvg} name={session.user.name ?? ""} role={session.user.role} />
-            </div>
-          </header>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* Desktop has no top header (theme toggle + user live in the sidebar
+              footer instead) — this strip only exists to keep the mobile drawer
+              reachable, since the sidebar itself is off-canvas below md. */}
+          <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5 md:hidden">
+            <SidebarToggleButton />
+            <span className="text-[15px] font-semibold text-text-primary">RepairX</span>
+          </div>
 
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-3 md:p-4">
+            <div className="min-h-full rounded-xl border border-border p-5 md:p-6">{children}</div>
+          </main>
         </div>
       </div>
     </ToastProvider>
