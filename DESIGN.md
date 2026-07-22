@@ -10,8 +10,8 @@ colors:
     surface-solid: "#ffffff"
     sidebar: "rgba(255,255,255,0.70)"
     text-primary: "#1d1d1f"
-    text-secondary: "#6e6e73"
-    text-tertiary: "#98989d"
+    text-secondary: "#45454a"
+    text-tertiary: "#5f5f64"
     border: "rgba(0,0,0,0.08)"
     border-strong: "rgba(0,0,0,0.14)"
     accent: "#0071e3"
@@ -22,8 +22,8 @@ colors:
     surface-solid: "#2c2c2e"
     sidebar: "rgba(30,30,32,0.70)"
     text-primary: "#f5f5f7"
-    text-secondary: "#98989d"
-    text-tertiary: "#6e6e73"
+    text-secondary: "#bcbcc0"
+    text-tertiary: "#9c9ca1"
     border: "rgba(255,255,255,0.10)"
     border-strong: "rgba(255,255,255,0.16)"
     accent: "#409cff"
@@ -209,8 +209,8 @@ Two surfaces exist:
 
 ### Text (light / dark)
 - **Text Primary** — `#1d1d1f` / `#f5f5f7`.
-- **Text Secondary** — `#6e6e73` / `#98989d`. Supporting copy, idle nav items, labels.
-- **Text Tertiary** — `#98989d` / `#6e6e73`. Placeholders, disabled, least emphasis.
+- **Text Secondary** — `#45454a` / `#bcbcc0`. Supporting copy, idle nav items, labels.
+- **Text Tertiary** — `#5f5f64` / `#9c9ca1`. Placeholders, disabled, least emphasis.
 
 ### Accent
 - **Accent** — `#0071e3` light / `#409cff` dark (system blue). Primary button fill,
