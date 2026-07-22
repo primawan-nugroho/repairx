@@ -1,6 +1,6 @@
 "use client";
 
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { statusColorKey } from "@/lib/utils";
 import { uicColorKey } from "@/lib/wc-uic-map";
 
@@ -50,39 +50,48 @@ const TOOLTIP_STYLE = {
   labelStyle: { color: "var(--text-primary)" },
 };
 
-/** Status/UIC breakdowns are parts-of-a-whole data (they sum to total open orders) —
- * a donut fits that better than a bar list, and unlike a single-series bar chart, Pie
- * supports a distinct color per slice directly via <Cell>. */
-export function StatusDonutChart({ rows }: { rows: BarRow[] }) {
+/** Status/UIC breakdowns can run past the ~5-6 slices a donut reads well at (UIC has
+ * up to 10 teams; status includes legacy free-text "w/f …" variants), so a horizontal
+ * bar reads more precisely at any category count — exact values off the axis instead
+ * of estimated angles, sorted so the largest count is immediately visible. Per-bar
+ * color is preserved via <Cell>, same mechanism the donuts used. No <Legend>: the
+ * Y-axis category labels already name each bar, matching MetricBarChart's convention. */
+export function StatusBarChart({ rows }: { rows: BarRow[] }) {
   if (rows.length === 0) return <EmptyState />;
+  const sorted = [...rows].sort((a, b) => b.count - a.count);
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <PieChart>
-        <Pie data={rows} dataKey="count" nameKey="label" innerRadius={55} outerRadius={95} paddingAngle={2} cornerRadius={3}>
-          {rows.map((r, i) => (
+    <ResponsiveContainer width="100%" height={Math.max(140, sorted.length * 36)}>
+      <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 24 }}>
+        <CartesianGrid horizontal={false} stroke="var(--border)" />
+        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <Tooltip {...TOOLTIP_STYLE} />
+        <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={20}>
+          {sorted.map((r, i) => (
             <Cell key={`${r.label}-${i}`} fill={STATUS_VARS[statusColorKey(r.label)] ?? "var(--status-open)"} />
           ))}
-        </Pie>
-        <Tooltip {...TOOLTIP_STYLE} />
-        <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
-      </PieChart>
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
 
-export function UicDonutChart({ rows, uicColorSlugs }: { rows: BarRow[]; uicColorSlugs: Record<string, string> }) {
+export function UicBarChart({ rows, uicColorSlugs }: { rows: BarRow[]; uicColorSlugs: Record<string, string> }) {
   if (rows.length === 0) return <EmptyState />;
+  const sorted = [...rows].sort((a, b) => b.count - a.count);
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <PieChart>
-        <Pie data={rows} dataKey="count" nameKey="label" innerRadius={55} outerRadius={95} paddingAngle={2} cornerRadius={3}>
-          {rows.map((r, i) => (
+    <ResponsiveContainer width="100%" height={Math.max(140, sorted.length * 36)}>
+      <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 24 }}>
+        <CartesianGrid horizontal={false} stroke="var(--border)" />
+        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+        <Tooltip {...TOOLTIP_STYLE} />
+        <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={20}>
+          {sorted.map((r, i) => (
             <Cell key={`${r.label}-${i}`} fill={UIC_VARS[uicColorKey(r.label, uicColorSlugs)] ?? "var(--uic-unmapped)"} />
           ))}
-        </Pie>
-        <Tooltip {...TOOLTIP_STYLE} />
-        <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
-      </PieChart>
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }

@@ -7,7 +7,7 @@ import { getMasters } from "@/lib/masters";
 import { auth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import { greeting } from "@/lib/shift";
-import { StatusDonutChart, UicDonutChart, MetricBarChart, ThroughputBarChart } from "./dashboard-charts";
+import { StatusBarChart, UicBarChart, MetricBarChart, ThroughputBarChart } from "./dashboard-charts";
 import { AiInsightCard } from "./ai-insight-card";
 
 export default async function DashboardPage() {
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
         <Card>
           <CardContent>
             <h2 className="text-sm font-semibold text-text-primary">Orders by status</h2>
-            <StatusDonutChart rows={summary.statusBreakdown} />
+            <StatusBarChart rows={summary.statusBreakdown} />
           </CardContent>
         </Card>
         <Card>
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
             {masters.terminalUic && (
               <p className="-mt-2 text-xs text-text-tertiary">Excludes {masters.terminalUic} (serviceable store)</p>
             )}
-            <UicDonutChart rows={summary.uicBreakdown} uicColorSlugs={masters.uicColorSlugs} />
+            <UicBarChart rows={summary.uicBreakdown} uicColorSlugs={masters.uicColorSlugs} />
           </CardContent>
         </Card>
       </div>
