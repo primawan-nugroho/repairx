@@ -22,8 +22,8 @@ export function Sidebar({ name, role, username, avatarSvg }: SidebarProps) {
           the collapse toggle (see SidebarLogoButton). */}
       <aside
         className={cn(
-          "vibrancy hidden shrink-0 flex-col border-r border-border transition-[width] duration-150 md:flex",
-          collapsed ? "w-[64px]" : "w-[220px]",
+          "hidden shrink-0 flex-col overflow-hidden border-r border-border transition-[width] duration-150 md:flex",
+          collapsed ? "vibrancy w-[64px]" : "bg-sidebar w-[220px]",
         )}
       >
         <div className="py-5">
@@ -45,13 +45,13 @@ export function Sidebar({ name, role, username, avatarSvg }: SidebarProps) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="fixed inset-0 bg-black/40" onClick={closeMobile} />
-          <aside className="vibrancy fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-border">
+          <aside className="bg-sidebar fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-border">
             <div className="flex items-center justify-between px-4 py-5">
               <div className="flex items-center gap-2">
                 <img src="/logo_only_black.png" alt="" width={24} height={24} className="dark:invert" />
                 <span className="flex flex-col items-start leading-tight">
                   <span className="text-[16px] font-semibold text-text-primary">RepairX</span>
-                  <span className="text-[10px] text-text-secondary">Aviation MRO Repair Monitoring</span>
+                  <span className="text-[10px] text-text-secondary">Repair Production Control</span>
                 </span>
               </div>
               <button

@@ -8,7 +8,7 @@ colors:
     canvas: "#f5f5f7"
     surface: "rgba(255,255,255,0.72)"
     surface-solid: "#ffffff"
-    sidebar: "rgba(255,255,255,0.70)"
+    sidebar: "#ffffff"
     text-primary: "#1d1d1f"
     text-secondary: "#45454a"
     text-tertiary: "#5f5f64"
@@ -20,7 +20,7 @@ colors:
     canvas: "#1c1c1e"
     surface: "rgba(44,44,46,0.62)"
     surface-solid: "#2c2c2e"
-    sidebar: "rgba(30,30,32,0.70)"
+    sidebar: "#2c2c2e"
     text-primary: "#f5f5f7"
     text-secondary: "#bcbcc0"
     text-tertiary: "#9c9ca1"
@@ -298,9 +298,10 @@ Base unit 8px: `{spacing.xxs}` 4 → `{spacing.huge}` 48. Slightly more breathin
 than the previous language's table-first density — cards get 20px padding, not 16px.
 
 ### Grid & container
-- **App shell**: fixed left sidebar 220px (`{sidebar-nav}`, vibrancy), top bar 52px
-  (`{topbar}`, vibrancy), content area on flat canvas with `{spacing.xl}` gutters,
-  max-width 1600px.
+- **App shell**: fixed left sidebar (`{sidebar-nav}`), 220px expanded (opaque
+  `{colors.*.sidebar}`, no blur) / 64px collapsed (vibrancy) — no top bar; the
+  theme toggle and account menu live in a sidebar footer instead. Content area
+  on flat canvas with `{spacing.xl}` gutters, max-width 1600px.
 - **Orders table**: flat (no vibrancy) so scrolling 2,900+ rows stays cheap;
   horizontally scrollable below 1280px with the order-number column pinned.
 - **Login**: single centered `{login-card}` (max 400px) on bare canvas — vibrancy panel
@@ -399,18 +400,23 @@ field.
 
 ### Navigation
 - **`{sidebar-nav}`** — collapsible: 220px expanded (logo + wordmark + labeled icon
-  items) or 64px collapsed to an icon-only rail (icons only, labels as `title` tooltips).
-  Vibrancy fill, hairline right border. Items in `{typography.body}` sentence case;
-  idle = text-secondary; active = accent text + `{colors.*.accent-bg}` pill background.
+  items, plus a footer with the theme toggle and account menu) or 64px collapsed to
+  an icon-only rail (icons only, labels as `title` tooltips, footer collapses to
+  just the avatar). Expanded fill is opaque `{colors.*.sidebar}` (no blur); collapsed
+  keeps the vibrancy blur. Hairline right border either way. Items in
+  `{typography.body}` sentence case; idle = text-secondary; active = accent text +
+  `{colors.*.accent-bg}` pill background. Labels and the wordmark subtitle stay
+  mounted across the collapse toggle and animate via `opacity`/`max-width` (not a
+  conditional unmount) so the transition doesn't pop; icon horizontal position stays
+  fixed (no re-centering) so nothing jumps mid-animation.
   **The logo itself is the collapse toggle** — no separate hamburger button on
   desktop/tablet. Clicking the logo/wordmark row collapses it to the icon rail;
   clicking the (now icon-only) logo expands it again. State persists to `localStorage`
   (same pattern as the theme toggle) and does not reset on reload. Below 768px the
-  sidebar is off-canvas entirely and the logo isn't visible to click, so a hamburger
-  button reappears in the topbar there (hidden ≥768px) to open the sidebar as a
-  slide-over with a scrim, always in its expanded (labeled) form.
-- **`{topbar}`** — 52px, vibrancy fill, date on the left (plus the mobile-only
-  hamburger), theme toggle + avatar menu on the right (see Avatar menu below).
+  sidebar is off-canvas entirely (always opaque, no collapsed state) and the logo
+  isn't visible to click, so a hamburger button reappears in a lightweight mobile-only
+  top strip (hidden ≥768px, no separate `{topbar}` component — there isn't one) to
+  open the sidebar as a slide-over with a scrim, always in its expanded (labeled) form.
 
 ### Logo
 A single monochrome black mark (`logo_only_black.png`, transparent background) is the

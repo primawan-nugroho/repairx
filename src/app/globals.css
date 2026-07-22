@@ -13,7 +13,9 @@
   --canvas: #f5f5f7;
   --surface: rgba(255, 255, 255, 0.72);
   --surface-solid: #ffffff;
-  --sidebar: rgba(255, 255, 255, 0.7);
+  /* Opaque, not translucent — the expanded sidebar rail and mobile drawer use this
+     instead of vibrancy; only the collapsed icon rail keeps the vibrancy blur. */
+  --sidebar: #ffffff;
   --text-primary: #1d1d1f;
   /* Darkened from #6e6e73 (~4.7:1) — CMMS-style stronger contrast for labels/
      captions/table headers. #45454a clears ~8.7:1 against --canvas. */
@@ -68,7 +70,8 @@
   --canvas: #1c1c1e;
   --surface: rgba(44, 44, 46, 0.62);
   --surface-solid: #2c2c2e;
-  --sidebar: rgba(30, 30, 32, 0.7);
+  /* See the light-theme block's comment — same opaque sidebar treatment. */
+  --sidebar: #2c2c2e;
   --text-primary: #f5f5f7;
   /* Lightened from #98989d (~5.9:1) — CMMS-style stronger contrast for labels/
      captions/table headers. #bcbcc0 clears ~9.0:1 against --canvas. */
@@ -108,7 +111,7 @@
 }
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "SF Mono", "JetBrains Mono", Consolas, monospace;
 
   --color-canvas: var(--canvas);

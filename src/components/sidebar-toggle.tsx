@@ -89,24 +89,27 @@ export function SidebarLogoButton({ collapsed }: { collapsed: boolean }) {
       onClick={toggleCollapsed}
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-lg py-2.5 hover:bg-surface",
-        collapsed ? "justify-center px-0" : "mx-2 w-auto px-2",
-      )}
+      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 hover:bg-surface"
     >
       <img
         src="/logo_only_black.png"
         alt=""
         width={collapsed ? 32 : 24}
         height={collapsed ? 32 : 24}
-        className="dark:invert"
+        className="shrink-0 dark:invert"
       />
-      {!collapsed && (
-        <span className="flex flex-col items-start leading-tight">
-          <span className="text-[16px] font-semibold text-text-primary">RepairX</span>
-          <span className="text-[10px] text-text-secondary">Aviation MRO Repair Monitoring</span>
-        </span>
-      )}
+      {/* Always mounted (not {!collapsed && ...}) — an instant unmount/remount can't be
+          animated, so it's clipped/faded via overflow-hidden + max-width/opacity
+          instead, in step with the aside's own width transition. */}
+      <span
+        className={cn(
+          "flex flex-col items-start justify-center overflow-hidden leading-tight whitespace-nowrap transition-[opacity,max-width] duration-150",
+          collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100",
+        )}
+      >
+        <span className="text-[16px] font-semibold text-text-primary">RepairX</span>
+        <span className="text-[10px] text-text-secondary">Repair Production Control</span>
+      </span>
     </button>
   );
 }

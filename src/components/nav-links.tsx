@@ -112,7 +112,6 @@ export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
               title={collapsed ? item.label : undefined}
               className={cn(
                 "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm",
-                collapsed && "justify-center px-0",
                 active
                   ? "bg-accent-bg font-medium text-accent"
                   : "text-text-secondary hover:text-text-primary",
@@ -129,7 +128,16 @@ export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
               >
                 {item.icon}
               </svg>
-              {!collapsed && <span>{item.label}</span>}
+              {/* Always mounted — see SidebarLogoButton's comment for why this can't be
+                  {!collapsed && ...} if the collapse transition is meant to be smooth. */}
+              <span
+                className={cn(
+                  "overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-150",
+                  collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100",
+                )}
+              >
+                {item.label}
+              </span>
             </Link>
           </div>
         );
