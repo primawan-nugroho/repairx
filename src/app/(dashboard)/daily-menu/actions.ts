@@ -7,7 +7,9 @@ import { db } from "@/db";
 import { dailyMenuEntries, orders } from "@/db/schema";
 import { dailyMenuEntrySchema, shiftEntryUpdateSchema } from "@/lib/validations";
 import { lookupOrder } from "@/lib/shift-report";
-import { populateDailyMenuFromPreviousShift } from "@/lib/daily-menu";
+import { populateDailyMenuFromShift } from "@/lib/daily-menu";
+
+const SHIFTS = ["AM", "PM", "Overtime"] as const;
 
 async function requireEditor() {
   const session = await auth();
@@ -40,9 +42,12 @@ export async function createDailyMenuEntry(formData: FormData) {
   });
   revalidatePath("/daily-menu");
 }
-export async function populateDailyMenu(menuDate: string, shift: string) {
+export async function populateDailyMenu(menuDate: string, shift: string, sourceDate: string, sourceShift: string) {
   const session = await requireEditor();
-  const count = await populateDailyMenuFromPreviousShift(menuDate, shift, Number(session.user.id));
+  if (!sourceDate || !SHIFTS.includes(sourceShift as (typeof SHIFTS)[number])) {
+    throw new Error("Invalid source date/shift");
+  }
+  const count = await populateDailyMenuFromShift(menuDate, shift, sourceDate, sourceShift, Number(session.user.id));
   revalidatePath("/daily-menu");
   return count;
 }

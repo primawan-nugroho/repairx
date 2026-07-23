@@ -5,15 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { deriveUic } from "@/lib/wc-uic-map";
-import { BARCODE_STATUSES } from "@/lib/shift-status";
 import { useToast } from "@/components/toast";
 import { createDailyMenuEntry, lookupDailyMenuOrder } from "./actions";
 
@@ -38,7 +30,6 @@ export function DailyMenuEntryForm({
   const [lookup, setLookup] = useState<OrderLookup | null>(null);
   const [orderNumber, setOrderNumber] = useState("");
   const [workCenter, setWorkCenter] = useState("");
-  const [completenessStatus, setCompletenessStatus] = useState("Open");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const request = useRef(0);
@@ -67,7 +58,6 @@ export function DailyMenuEntryForm({
         setOrderNumber("");
         setLookup(null);
         setWorkCenter("");
-        setCompletenessStatus("Open");
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Unable to add entry.");
       }
@@ -79,7 +69,6 @@ export function DailyMenuEntryForm({
       <form ref={formRef} action={submit} className="grid grid-cols-1 gap-3 p-5 md:grid-cols-4">
         <input type="hidden" name="menuDate" value={menuDate} />
         <input type="hidden" name="shift" value={shift} />
-        <input type="hidden" name="completenessStatus" value={completenessStatus} />
         <input type="hidden" name="uic" value={derivedUic ?? ""} />
 
         <div className="flex flex-col gap-1">
@@ -133,34 +122,7 @@ export function DailyMenuEntryForm({
           <Label htmlFor="planMhrs">Manhours</Label>
           <Input id="planMhrs" name="planMhrs" type="number" step="0.5" className="data-mono" />
         </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="progressPct">Progress %</Label>
-          <Input id="progressPct" name="progressPct" type="number" min={0} max={100} className="data-mono" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>Stamp</Label>
-          <label className="flex h-9 items-center gap-2 rounded-sm border border-border bg-surface px-3 text-sm">
-            <input name="stamp" type="checkbox" className="h-4 w-4 accent-[var(--accent)]" />
-            <span className="text-text-secondary">Stamped</span>
-          </label>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>Barcode status</Label>
-          <Select value={completenessStatus} onValueChange={setCompletenessStatus}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {BARCODE_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 md:col-span-3">
           <Label htmlFor="remark">Remark</Label>
           <Input id="remark" name="remark" />
         </div>

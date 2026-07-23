@@ -9,11 +9,10 @@ interface PageProps {
   searchParams: Promise<{ date?: string; shift?: string }>;
 }
 
-// Same column set/order/widths as the End Shift Report export (see
-// src/app/print/shift-report/page.tsx) — the Daily Menu is the same data shape
-// (see db/schema.ts: daily_menu_entries mirrors shift_report_entries), so its export
-// should read identically, not as a different layout.
-const COLUMN_WIDTHS = [7, 18, 9, 9, 6, 21, 8, 8, 6, 8] as const;
+// Drops Progress/Stamp/Barcode status vs. the End Shift Report export (see
+// src/app/print/shift-report/page.tsx) — those are end-of-shift completion fields,
+// not applicable to the Daily Menu (a forward-looking plan, not a completion record).
+const COLUMN_WIDTHS = [9, 23, 11, 11, 8, 27, 11] as const;
 
 function ReportColgroup() {
   return (
@@ -60,7 +59,7 @@ export default async function DailyMenuExportPage({ searchParams }: PageProps) {
             <ReportColgroup />
             <thead>
               <tr className="bg-[#f0f0fa]">
-                <th colSpan={10} className="border border-[#e0e0e8] px-2 py-1.5 text-left uppercase tracking-[0.5px]">
+                <th colSpan={7} className="border border-[#e0e0e8] px-2 py-1.5 text-left uppercase tracking-[0.5px]">
                   UIC: {uic}
                 </th>
               </tr>
@@ -72,9 +71,6 @@ export default async function DailyMenuExportPage({ searchParams }: PageProps) {
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Ops</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Activity</th>
                 <th className="border border-[#e0e0e8] px-2 py-1.5">Manhours</th>
-                <th className="border border-[#e0e0e8] px-2 py-1.5">Progress</th>
-                <th className="border border-[#e0e0e8] px-2 py-1.5">Stamp</th>
-                <th className="border border-[#e0e0e8] px-2 py-1.5">Barcode status</th>
               </tr>
             </thead>
             <tbody>
@@ -87,9 +83,6 @@ export default async function DailyMenuExportPage({ searchParams }: PageProps) {
                   <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.ops}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5">{e.activity}</td>
                   <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.planMhrs ?? 0}</td>
-                  <td className="border border-[#e0e0e8] px-2 py-1.5 font-mono">{e.progressPct ?? 0}%</td>
-                  <td className="border border-[#e0e0e8] px-2 py-1.5 text-center">{e.stamp ? "✓" : "—"}</td>
-                  <td className="border border-[#e0e0e8] px-2 py-1.5">{e.completenessStatus}</td>
                 </tr>
               ))}
             </tbody>

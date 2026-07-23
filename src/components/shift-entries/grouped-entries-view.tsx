@@ -13,6 +13,10 @@ interface GroupedEntriesViewProps {
   entries: EditableShiftEntry[];
   canEdit: boolean;
   showManhours?: boolean;
+  /** Progress %/Stamp/Barcode status are end-of-shift completion fields — irrelevant
+   * for the Daily Menu, which is a forward-looking plan, not a completion record.
+   * Defaults true (Shift Report keeps all three columns). */
+  showCompletion?: boolean;
   onSave: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   emptyMessage: string;
@@ -23,6 +27,7 @@ export function GroupedEntriesView({
   entries,
   canEdit,
   showManhours = true,
+  showCompletion = true,
   onSave,
   onDelete,
   emptyMessage,
@@ -37,7 +42,7 @@ export function GroupedEntriesView({
   // per row so the user doesn't have to open the dialog just to confirm they want to
   // delete. The trash uses the same confirm-in-place flow the dialog itself already
   // has, so accidental double-clicks don't nuke rows.
-  const columnCount = 9 + (showManhours ? 1 : 0) + (canEdit ? 1 : 0);
+  const columnCount = 6 + (showManhours ? 1 : 0) + (showCompletion ? 3 : 0) + (canEdit ? 1 : 0);
 
   function handleDelete(id: number) {
     startTransition(async () => {
@@ -69,8 +74,8 @@ export function GroupedEntriesView({
               <UicBadge uic={uic === "Unassigned" ? null : uic} uicColorSlugs={masters.uicColorSlugs} />
               {uic === "Unassigned" && <span className="text-xs font-medium text-text-secondary">Unassigned</span>}
               <span className="data-mono text-xs text-text-secondary">
-                {groupEntries.length} {groupEntries.length === 1 ? "entry" : "entries"} · {finalCount} final · avg{" "}
-                {avgProgress}%
+                {groupEntries.length} {groupEntries.length === 1 ? "entry" : "entries"}
+                {showCompletion && ` · ${finalCount} final · avg ${avgProgress}%`}
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -84,9 +89,13 @@ export function GroupedEntriesView({
                     <th className="px-3 py-2">Ops</th>
                     <th className="px-3 py-2">Activity</th>
                     {showManhours && <th className="px-3 py-2">Manhours</th>}
-                    <th className="px-3 py-2">Progress</th>
-                    <th className="px-3 py-2">Stamp</th>
-                    <th className="px-3 py-2">Barcode status</th>
+                    {showCompletion && (
+                      <>
+                        <th className="px-3 py-2">Progress</th>
+                        <th className="px-3 py-2">Stamp</th>
+                        <th className="px-3 py-2">Barcode status</th>
+                      </>
+                    )}
                     {canEdit && <th className="px-3 py-2 text-right">Actions</th>}
                   </tr>
                 </thead>
@@ -108,15 +117,19 @@ export function GroupedEntriesView({
                         <span className="line-clamp-1">{e.activity}</span>
                       </td>
                       {showManhours && <td className="px-3 py-2 data-mono">{e.planMhrs ?? 0}</td>}
-                      <td className="px-3 py-2">
-                        <ProgressBadge pct={e.progressPct} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <StampBadge stamped={e.stamp} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusBadge status={e.completenessStatus} />
-                      </td>
+                      {showCompletion && (
+                        <>
+                          <td className="px-3 py-2">
+                            <ProgressBadge pct={e.progressPct} />
+                          </td>
+                          <td className="px-3 py-2">
+                            <StampBadge stamped={e.stamp} />
+                          </td>
+                          <td className="px-3 py-2">
+                            <StatusBadge status={e.completenessStatus} />
+                          </td>
+                        </>
+                      )}
                       {canEdit && (
                         <td className="px-3 py-2">
                           {confirmDeleteId === e.id ? (
@@ -183,6 +196,7 @@ export function GroupedEntriesView({
           entry={editing}
           canEdit={canEdit}
           showManhours={showManhours}
+          showCompletion={showCompletion}
           onSave={onSave}
           onDelete={onDelete}
           onClose={() => setEditing(null)}

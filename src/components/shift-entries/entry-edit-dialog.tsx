@@ -22,6 +22,10 @@ interface EntryEditDialogProps {
   entry: EditableShiftEntry;
   canEdit: boolean;
   showManhours: boolean;
+  /** Progress %/Stamp/Barcode status are end-of-shift completion fields — irrelevant
+   * for the Daily Menu, which is a forward-looking plan, not a completion record.
+   * Defaults true (Shift Report keeps all three). */
+  showCompletion?: boolean;
   onSave: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onClose: () => void;
@@ -32,6 +36,7 @@ export function EntryEditDialog({
   entry,
   canEdit,
   showManhours,
+  showCompletion = true,
   onSave,
   onDelete,
   onClose,
@@ -103,7 +108,19 @@ export function EntryEditDialog({
           action={handleSubmit}
           className="grid grid-cols-1 gap-2.5 overflow-y-auto px-5 py-4 md:grid-cols-2"
         >
-          <input type="hidden" name="completenessStatus" value={completenessStatus} />
+          {showCompletion ? (
+            <input type="hidden" name="completenessStatus" value={completenessStatus} />
+          ) : (
+            // Fields are hidden, but the entry may already carry values from before
+            // (e.g. copied in via "populate from previous shift") — pass them through
+            // unchanged instead of letting the schema's checkbox default(false)/absent
+            // fields silently clear them when other fields are edited and saved.
+            entry.completenessStatus && <input type="hidden" name="completenessStatus" value={entry.completenessStatus} />
+          )}
+          {!showCompletion && entry.progressPct != null && (
+            <input type="hidden" name="progressPct" value={entry.progressPct} />
+          )}
+          {!showCompletion && entry.stamp && <input type="hidden" name="stamp" value="on" />}
 
           <div className="flex flex-col gap-1">
             <Label htmlFor="workCenter">Work center</Label>
@@ -126,21 +143,23 @@ export function EntryEditDialog({
             <Label htmlFor="ops">Ops</Label>
             <Input id="ops" name="ops" defaultValue={entry.ops ?? ""} disabled={!canEdit} className="data-mono" />
           </div>
-          <div className="flex flex-col gap-1">
-            <Label>Barcode status</Label>
-            <Select value={completenessStatus} onValueChange={setCompletenessStatus} disabled={!canEdit}>
-              <SelectTrigger>
-                <SelectValue placeholder="— unset —" />
-              </SelectTrigger>
-              <SelectContent>
-                {BARCODE_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showCompletion && (
+            <div className="flex flex-col gap-1">
+              <Label>Barcode status</Label>
+              <Select value={completenessStatus} onValueChange={setCompletenessStatus} disabled={!canEdit}>
+                <SelectTrigger>
+                  <SelectValue placeholder="— unset —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BARCODE_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1 md:col-span-2">
             <Label htmlFor="activity">Activity</Label>
@@ -168,20 +187,23 @@ export function EntryEditDialog({
               />
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="progressPct">Progress %</Label>
-            <Input
-              id="progressPct"
-              name="progressPct"
-              type="number"
-              min={0}
-              max={100}
-              defaultValue={entry.progressPct ?? ""}
-              disabled={!canEdit}
-              className="data-mono"
-            />
-          </div>
+          {showCompletion && (
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="progressPct">Progress %</Label>
+              <Input
+                id="progressPct"
+                name="progressPct"
+                type="number"
+                min={0}
+                max={100}
+                defaultValue={entry.progressPct ?? ""}
+                disabled={!canEdit}
+                className="data-mono"
+              />
+            </div>
+          )}
 
+          {showCompletion && (
           <div className="flex flex-col gap-1">
             <Label>Stamp</Label>
             <label className="flex h-9 items-center gap-2 rounded-sm border border-border bg-surface px-3 text-sm">
@@ -195,6 +217,7 @@ export function EntryEditDialog({
               <span className="text-text-secondary">Stamped</span>
             </label>
           </div>
+          )}
           <div className="flex flex-col gap-1">
             <Label htmlFor="remark">Remark</Label>
             <Input id="remark" name="remark" defaultValue={entry.remark ?? ""} disabled={!canEdit} />

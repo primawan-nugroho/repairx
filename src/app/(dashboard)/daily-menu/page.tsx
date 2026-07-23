@@ -77,16 +77,17 @@ export default async function DailyMenuPage({ searchParams }: PageProps) {
       {entries.length === 0 && canEdit && (
         <Card className="flex items-center justify-between p-4">
           <span className="text-sm text-text-secondary">
-            No menu yet for this date/shift — pull it from the previous shift ({prev.shift} on{" "}
-            {prev.date}) to start from what was already logged.
+            No menu yet for this date/shift — pull unfinished entries from an earlier shift
+            (defaults to {prev.shift} on {prev.date}) to start from what was already logged.
           </span>
-          <PopulateButton menuDate={menuDate} shift={shift} />
+          <PopulateButton menuDate={menuDate} shift={shift} defaultSourceDate={prev.date} defaultSourceShift={prev.shift} />
         </Card>
       )}
 
       <GroupedEntriesView
         entries={entries}
         canEdit={canEdit}
+        showCompletion={false}
         onSave={updateDailyMenuEntry}
         onDelete={archiveDailyMenuEntry}
         emptyMessage="No menu entries for this date/shift yet."
